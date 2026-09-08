@@ -628,6 +628,35 @@ def test_support_profile_view_excludes_routing(seeded, packets):
     assert row[0] == "DIRECT_EVIDENCE_ONLY"
 
 
+def test_pg_rejects_resolution_using_route_from_other_question(seeded, packets):
+    with conn("historian_extractor") as c:
+        c.execute("""INSERT INTO routing_proposal
+            (id,question_id,taxonomy_version,proposed_frame,extractor_id)
+            VALUES (%s,'q2','v1','CURRENT_OPERATIONAL_STATE','model-x')""",
+                  (rid("R-cross-route"),))
+    with conn("historian_runtime") as c, pytest.raises(psycopg.errors.ForeignKeyViolation):
+        c.execute("""INSERT INTO resolution
+            (id,question_id,outcome,resolution_method,conclusion,routing_proposal_id)
+            VALUES (%s,'q1','RESOLVED','MODEL_INFERENCE','c',%s)""",
+                  (rid("R-cross-route-resolution"), rid("R-cross-route")))
+
+
+def test_pg_rejects_resolution_claim_dependency_from_other_question(seeded, packets):
+    with conn("historian_extractor") as c:
+        c.execute("""INSERT INTO claim_proposal
+            (id,evidence_id,question_id,claim,extractor_id)
+            VALUES (%s,'e1','q2','belongs to q2','model-x')""",
+                  (rid("CP-cross-question"),))
+    with conn("historian_runtime") as c:
+        c.execute("""INSERT INTO resolution
+            (id,question_id,outcome,resolution_method,conclusion)
+            VALUES (%s,'q1','RESOLVED','MODEL_INFERENCE','c')""",
+                  (rid("R-cross-claim-resolution"),))
+        with pytest.raises(psycopg.errors.RaiseException):
+            c.execute("INSERT INTO resolution_claim_dep VALUES (%s,%s)",
+                      (rid("R-cross-claim-resolution"), rid("CP-cross-question")))
+
+
 # ---- G-S9 coverage derived from real adjudicated gold
 
 

@@ -2,6 +2,12 @@ from pathlib import Path
 
 
 SCHEMA = Path(__file__).resolve().parents[1] / "sql" / "01-schema.sql"
+MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "sql"
+    / "migrations"
+    / "001-question-bound-provenance.sql"
+)
 
 
 def test_schema_binds_resolution_routes_to_the_same_question():
@@ -18,3 +24,15 @@ def test_schema_binds_resolution_claims_to_the_same_question():
     assert "CONSTRAINT claim_question_identity UNIQUE (id, question_id)" in sql
     assert "CREATE FUNCTION resolution_claim_dep_same_question()" in sql
     assert "CREATE TRIGGER resolution_claim_dep_same_question_trg" in sql
+
+
+def test_migration_hardens_existing_frozen_databases_without_reprovisioning():
+    sql = MIGRATION.read_text()
+    assert "ALTER TABLE claim_proposal" in sql
+    assert "ALTER COLUMN question_id SET NOT NULL" in sql
+    assert "ADD CONSTRAINT routing_question_identity UNIQUE (id, question_id)" in sql
+    assert "ADD CONSTRAINT resolution_route_answers_same_question FOREIGN KEY" in sql
+    assert "ADD CONSTRAINT claim_question_identity UNIQUE (id, question_id)" in sql
+    assert "CREATE OR REPLACE FUNCTION resolution_claim_dep_same_question()" in sql
+    assert "DROP TRIGGER IF EXISTS resolution_claim_dep_same_question_trg" in sql
+    assert "docker rm" not in sql

@@ -244,6 +244,8 @@ class Adjudicator:
         details = tuple(
             f"{key}: {', '.join(sorted(role.value for role in proposed))}"
             for key, proposed in sorted(conflicts.items()))
+        for key in conflicts:
+            by_ref.pop(key, None)
         return by_ref, details
 
     @staticmethod
@@ -286,9 +288,7 @@ class Adjudicator:
         self._reject_cross_wired_claims(question, claims)
 
         roles, role_conflicts = self._source_roles(source_role_proposals)
-        role_refs: list[str] = []
-        for sp in source_role_proposals:
-            role_refs.append(sp.id)
+        role_refs = tuple(sorted(sp.id for sp in source_role_proposals))
 
         # A relation may only settle a conflict if it is ASSERTED. The split is by TYPE at
         # runtime, not by an annotation, because an annotation is not enforcement.
@@ -308,15 +308,9 @@ class Adjudicator:
         )
 
         frame, caller, routing_ref = self._route(question, routing)
-        authority = self._authoritative(frame, evidence, roles)
-
-        by_evidence = {c.evidence_id: c for c in claims}
-        # B1: a source offering no claim is SILENT. Silence is recorded and then plays no
-        # further part - it never becomes a negative claim, and never creates a relation.
-        silent = tuple(s for s in authority if s not in by_evidence)
-        speaking = [by_evidence[s] for s in authority if s in by_evidence]
-
-        claim_refs = tuple(c.id for c in speaking)
+        authority: tuple[str, ...] = ()
+        silent: tuple[str, ...] = ()
+        claim_refs: tuple[str, ...] = ()
         notes: list[str] = []
 
         def out(outcome, *, conclusion=None, reason=None, conflict=False,
@@ -328,7 +322,7 @@ class Adjudicator:
                 evidence_refs=evidence,
                 asserted_relation_refs=tuple(dict.fromkeys(asserted_refs)),
                 claim_proposal_refs=claim_refs,
-                source_role_proposal_refs=tuple(role_refs),
+                source_role_proposal_refs=role_refs,
                 routing_proposal_ref=routing_ref)
             return Adjudication(res, frame, caller,
                                 survivors if survivors is not None else authority,
@@ -338,6 +332,16 @@ class Adjudicator:
             return out(Outcome.UNRESOLVED, conflict=True, reason=(
                 "conflicting source-role proposals leave authority unresolved: "
                 + "; ".join(role_conflicts)), survivors=())
+
+        authority = self._authoritative(frame, evidence, roles)
+
+        by_evidence = {c.evidence_id: c for c in claims}
+        # B1: a source offering no claim is SILENT. Silence is recorded and then plays no
+        # further part - it never becomes a negative claim, and never creates a relation.
+        silent = tuple(s for s in authority if s not in by_evidence)
+        speaking = [by_evidence[s] for s in authority if s in by_evidence]
+
+        claim_refs = tuple(c.id for c in speaking)
 
         if not speaking:
             return out(Outcome.UNRESOLVED,
