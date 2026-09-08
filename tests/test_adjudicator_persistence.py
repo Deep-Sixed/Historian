@@ -95,8 +95,8 @@ def _adjudicate(with_asserted: bool):
     return eng.adjudicate(
         question=Question(n("q"), "persisted question"),
         evidence=(_ev("A"), _ev("B")),
-        claims=(ClaimProposal(n("cpA"), n("A"), "X", "model-x"),
-                ClaimProposal(n("cpB"), n("B"), "Y", "model-x")),
+        claims=(ClaimProposal(n("cpA"), n("A"), "X", "model-x", n("q")),
+                ClaimProposal(n("cpB"), n("B"), "Y", "model-x", n("q"))),
         source_role_proposals=(
             SourceRoleProposal(n("srpA"), _ev("A"),
                                SourceRole.LOCAL_OPERATIONAL_DECISION, (_ev("A"),), "m"),
@@ -173,9 +173,9 @@ def test_the_old_fabricated_claim_id_is_rejected_by_the_foreign_key(fixture_rows
 def test_runtime_cannot_author_a_claim_it_may_only_cite_one(fixture_rows):
     """Claims are inference. The resolver citing one must not be able to invent one."""
     with conn("historian_runtime") as c, pytest.raises(psycopg.errors.InsufficientPrivilege):
-        c.execute("""INSERT INTO claim_proposal(id,evidence_id,claim,extractor_id)
-                     VALUES (%s,%s,'invented','historian_runtime')""",
-                  (n("cpX"), n("A")))
+        c.execute("""INSERT INTO claim_proposal(id,evidence_id,question_id,claim,extractor_id)
+                     VALUES (%s,%s,%s,'invented','historian_runtime')""",
+                  (n("cpX"), n("A"), n("q")))
 
 
 def test_unresolved_adjudication_also_persists(fixture_rows):
@@ -232,8 +232,8 @@ def test_same_source_distinct_evidence_survives_adjudication_and_persistence(fix
     a = Adjudicator(TAX, POLICY).adjudicate(
         question=Question(qid, "same source question"),
         evidence=(old_ref, new_ref),
-        claims=(ClaimProposal(n("cp-old"), e_old, "policy is X", "model-x"),
-                ClaimProposal(n("cp-new"), e_new, "policy is Y", "model-x")),
+        claims=(ClaimProposal(n("cp-old"), e_old, "policy is X", "model-x", qid),
+                ClaimProposal(n("cp-new"), e_new, "policy is Y", "model-x", qid)),
         source_role_proposals=(
             SourceRoleProposal(n("srp-old"), old_ref,
                                SourceRole.LOCAL_OPERATIONAL_DECISION, (old_ref,), "m"),

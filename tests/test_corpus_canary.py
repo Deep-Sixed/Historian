@@ -57,6 +57,7 @@ def test_adjudicator_runs_over_real_evidence(case, reader):
     """Runs the engine on real corpus evidence. Asserts it produces a well-formed decision
     - NOT that the decision is correct, which nobody has established."""
     eng = Adjudicator(TAX, POLICY)
+    qid = f"q-{case['id']}"
     evs, claims, roles = [], [], []
     for i, doc in enumerate(case["evidence"]):
         v = reader.version_of(doc)
@@ -65,10 +66,10 @@ def test_adjudicator_runs_over_real_evidence(case, reader):
                         evidence_id=f"{case['id']}:{i}:{doc}")
         evs.append(e)
         claims.append(ClaimProposal(f"cp-{case['id']}-{i}", e.key, f"claim-from-{doc}",
-                                    "canary"))
+                                    "canary", qid))
         roles.append(SourceRoleProposal(f"srp-{case['id']}-{i}", e, SourceRole.UNKNOWN,
                                         (e,), "canary"))
-    a = eng.adjudicate(question=Question(f"q-{case['id']}", case["question"]),
+    a = eng.adjudicate(question=Question(qid, case["question"]),
                        evidence=tuple(evs), claims=tuple(claims),
                        source_role_proposals=tuple(roles),
                        resolution_id=f"canary-{case['id']}")
