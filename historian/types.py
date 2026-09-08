@@ -452,10 +452,10 @@ class ClaimProposal:
     evidence_id: str
     claim: str
     extractor_id: str
-    question_id: str | None = None
+    question_id: str
 
     def __post_init__(self) -> None:
-        for name in ("id", "evidence_id", "claim", "extractor_id"):
+        for name in ("id", "evidence_id", "claim", "extractor_id", "question_id"):
             if not getattr(self, name):
                 raise ValueError(f"ClaimProposal.{name} is required")
 
