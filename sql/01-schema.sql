@@ -244,7 +244,10 @@ CREATE TABLE routing_proposal (
     -- G-S7: the frame must exist in the referenced taxonomy. Composite FK, not a check
     -- in application code that a later path could skip.
     CONSTRAINT frame_in_taxonomy FOREIGN KEY (taxonomy_version, proposed_frame)
-        REFERENCES taxonomy_entry(version, frame)
+        REFERENCES taxonomy_entry(version, frame),
+    -- FK target: a resolution using this route must answer the same question the route
+    -- was proposed for. Authority frames are question-relative.
+    CONSTRAINT routing_question_identity UNIQUE (id, question_id)
 );
 COMMENT ON TABLE routing_proposal IS
 'ALWAYS inferential. There is no explicitly_specified column: a boolean the extractor could
@@ -328,7 +331,10 @@ CREATE TABLE resolution (
     CONSTRAINT unresolved_says_why CHECK (
         outcome <> 'UNRESOLVED' OR unresolved_reason IS NOT NULL),
     CONSTRAINT unresolved_has_no_conclusion CHECK (
-        outcome <> 'UNRESOLVED' OR conclusion IS NULL)
+        outcome <> 'UNRESOLVED' OR conclusion IS NULL),
+    CONSTRAINT resolution_route_answers_same_question FOREIGN KEY
+        (routing_proposal_id, question_id)
+        REFERENCES routing_proposal(id, question_id)
 );
 
 CREATE TABLE resolution_evidence (
@@ -359,15 +365,38 @@ CREATE TABLE resolution_source_role_dep (
 CREATE TABLE claim_proposal (
     id           text PRIMARY KEY,
     evidence_id  text NOT NULL REFERENCES evidence_ref(id),
-    question_id  text REFERENCES question(id),
+    question_id  text NOT NULL REFERENCES question(id),
     claim        text NOT NULL CHECK (claim <> ''),
     extractor_id text NOT NULL CHECK (extractor_id <> ''),
-    created_at   timestamptz NOT NULL DEFAULT now());
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    -- FK target: a resolution may only depend on claims proposed for the same question.
+    CONSTRAINT claim_question_identity UNIQUE (id, question_id));
 
 CREATE TABLE resolution_claim_dep (
     resolution_id text NOT NULL REFERENCES resolution(id),
     claim_id      text NOT NULL REFERENCES claim_proposal(id),
     PRIMARY KEY (resolution_id, claim_id));
+
+CREATE FUNCTION resolution_claim_dep_same_question() RETURNS trigger AS $$
+DECLARE
+    v_resolution_question text;
+    v_claim_question text;
+BEGIN
+    SELECT question_id INTO v_resolution_question
+      FROM resolution WHERE id = NEW.resolution_id;
+    SELECT question_id INTO v_claim_question
+      FROM claim_proposal WHERE id = NEW.claim_id;
+
+    IF v_resolution_question IS DISTINCT FROM v_claim_question THEN
+        RAISE EXCEPTION 'claim proposal % belongs to question %, not resolution question %',
+                        NEW.claim_id, v_claim_question, v_resolution_question;
+    END IF;
+    RETURN NEW;
+END $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+CREATE TRIGGER resolution_claim_dep_same_question_trg
+    BEFORE INSERT ON resolution_claim_dep
+    FOR EACH ROW EXECUTE FUNCTION resolution_claim_dep_same_question();
 
 -- support_profile is DERIVED, never stored. Routing is excluded on purpose: it selects
 -- WHICH authority rules apply, not what supports the conclusion, and including it would
