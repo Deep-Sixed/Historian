@@ -68,8 +68,8 @@ def proposed_rel(kind, subject, obj):
                             (ev(subject),), "model-x", "run-1")
 
 
-def claim(evidence_id, text, extractor="m"):
-    return ClaimProposal(f"cp-{evidence_id}", evidence_id, text, extractor)
+def claim(evidence_id, text, extractor="m", qid="q1"):
+    return ClaimProposal(f"cp-{evidence_id}", evidence_id, text, extractor, qid)
 
 
 def roles(mapping):
@@ -147,8 +147,8 @@ def test_B2_later_position_in_the_same_document_does_not_win(eng):
     a = eng.adjudicate(
         question=q(),
         evidence=(early, late),
-        claims=(ClaimProposal("cp-early", early.key, "policy is X", "m"),
-                ClaimProposal("cp-late", late.key, "policy is Y", "m")),
+        claims=(ClaimProposal("cp-early", early.key, "policy is X", "m", "q1"),
+                ClaimProposal("cp-late", late.key, "policy is Y", "m", "q1")),
         source_role_proposals=(
             SourceRoleProposal("srp-early", early,
                                SourceRole.LOCAL_OPERATIONAL_DECISION, (early,), "m"),
@@ -171,7 +171,7 @@ def test_claims_must_name_evidence_ids_in_packet(eng):
         eng.adjudicate(
             question=q(),
             evidence=(early, late),
-            claims=(ClaimProposal("cp-early", "doc-42", "policy is X", "m"),),
+            claims=(ClaimProposal("cp-early", "doc-42", "policy is X", "m", "q1"),),
             source_role_proposals=(
                 SourceRoleProposal("srp-early", early,
                                    SourceRole.LOCAL_OPERATIONAL_DECISION, (early,), "m"),
@@ -187,8 +187,8 @@ def test_duplicate_claim_evidence_ids_are_rejected(eng):
         eng.adjudicate(
             question=q(),
             evidence=(a,),
-            claims=(ClaimProposal("cp-a", a.key, "policy is X", "m"),
-                    ClaimProposal("cp-b", a.key, "policy is Y", "m")),
+            claims=(ClaimProposal("cp-a", a.key, "policy is X", "m", "q1"),
+                    ClaimProposal("cp-b", a.key, "policy is Y", "m", "q1")),
             source_role_proposals=(
                 SourceRoleProposal("srp-a", a,
                                    SourceRole.LOCAL_OPERATIONAL_DECISION, (a,), "m"),),
@@ -204,8 +204,8 @@ def test_relation_endpoints_must_name_evidence_ids_in_packet(eng):
         eng.adjudicate(
             question=q(),
             evidence=(early, late),
-            claims=(ClaimProposal("cp-early", early.key, "policy is X", "m"),
-                    ClaimProposal("cp-late", late.key, "policy is Y", "m")),
+            claims=(ClaimProposal("cp-early", early.key, "policy is X", "m", "q1"),
+                    ClaimProposal("cp-late", late.key, "policy is Y", "m", "q1")),
             source_role_proposals=(
                 SourceRoleProposal("srp-early", early,
                                    SourceRole.LOCAL_OPERATIONAL_DECISION, (early,), "m"),
@@ -217,6 +217,74 @@ def test_relation_endpoints_must_name_evidence_ids_in_packet(eng):
                                         typed_source_ref="fixture"),),
             routing=route(LOCAL_FRAME),
         )
+
+
+def test_routing_proposal_must_belong_to_the_question(eng):
+    with pytest.raises(ValueError, match="RoutingProposal.question_id"):
+        eng.adjudicate(
+            question=q("q-current"),
+            evidence=(ev("A"),),
+            claims=(ClaimProposal("cp-A", "A", "X", "m", "q-current"),),
+            source_role_proposals=roles({"A": SourceRole.LOCAL_OPERATIONAL_DECISION}),
+            routing=route(LOCAL_FRAME, qid="q-other"),
+        )
+
+
+def test_claim_proposal_must_belong_to_the_question(eng):
+    with pytest.raises(ValueError, match="ClaimProposal.question_id"):
+        eng.adjudicate(
+            question=q("q-current"),
+            evidence=(ev("A"),),
+            claims=(ClaimProposal("cp-A", "A", "X", "m", "q-other"),),
+            source_role_proposals=roles({"A": SourceRole.LOCAL_OPERATIONAL_DECISION}),
+            routing=route(LOCAL_FRAME, qid="q-current"),
+        )
+
+
+def test_conflicting_source_roles_are_not_order_dependent(eng):
+    evidence = ev("A")
+    local = SourceRoleProposal("srp-local", evidence,
+                               SourceRole.LOCAL_OPERATIONAL_DECISION, (evidence,), "m")
+    vendor = SourceRoleProposal("srp-vendor", evidence,
+                                SourceRole.UPSTREAM_VENDOR_MATERIAL, (evidence,), "m")
+
+    def run(*role_proposals):
+        return eng.adjudicate(
+            question=q(),
+            evidence=(evidence,),
+            claims=(ClaimProposal("cp-A", "A", "X", "m", "q1"),),
+            source_role_proposals=role_proposals,
+            routing=route(LOCAL_FRAME),
+        )
+
+    a = run(local, vendor)
+    b = run(vendor, local)
+    assert a.resolution.outcome is Outcome.UNRESOLVED
+    assert a.resolution.conclusion is None
+    assert "conflicting source-role proposals" in a.resolution.unresolved_reason
+    assert (
+        a.resolution.outcome,
+        a.resolution.conclusion,
+        a.resolution.unresolved_reason,
+        a.authority_refs,
+        a.silent_refs,
+        a.resolution.claim_proposal_refs,
+        a.resolution.routing_proposal_ref,
+        a.resolution.source_role_proposal_refs,
+    ) == (
+        b.resolution.outcome,
+        b.resolution.conclusion,
+        b.resolution.unresolved_reason,
+        b.authority_refs,
+        b.silent_refs,
+        b.resolution.claim_proposal_refs,
+        b.resolution.routing_proposal_ref,
+        b.resolution.source_role_proposal_refs,
+    )
+    assert a.authority_refs == ()
+    assert a.silent_refs == ()
+    assert a.resolution.claim_proposal_refs == ()
+    assert a.resolution.source_role_proposal_refs == ("srp-local", "srp-vendor")
 
 
 def test_B2_explicit_correction_does_win(eng):

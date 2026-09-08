@@ -117,6 +117,8 @@ class Adjudicator:
             return question.caller_frame, True, None
         if routing is None or not self._tax.permits(routing.proposed_frame):
             return UNKNOWN, False, None
+        if routing.question_id != question.id:
+            raise ValueError("RoutingProposal.question_id must match Question.id")
         if routing.taxonomy_version != self._tax.version:
             return UNKNOWN, False, None
         return routing.proposed_frame, False, routing.id
@@ -219,6 +221,34 @@ class Adjudicator:
                 "duplicate ClaimProposal.evidence_id values: " + ", ".join(duplicates))
 
     @staticmethod
+    def _reject_cross_wired_claims(question: Question,
+                                   claims: tuple[ClaimProposal, ...]) -> None:
+        mismatches = sorted({c.id for c in claims if c.question_id != question.id})
+        if mismatches:
+            raise ValueError(
+                "ClaimProposal.question_id must match Question.id: "
+                + ", ".join(mismatches))
+
+    @staticmethod
+    def _source_roles(
+            roles: tuple[SourceRoleProposal, ...]) -> tuple[dict[str, SourceRole],
+                                                            tuple[str, ...]]:
+        by_ref: dict[str, SourceRole] = {}
+        conflicts: dict[str, set[SourceRole]] = {}
+        for sp in roles:
+            _enum(sp.proposed_role, SourceRole, "SourceRoleProposal.proposed_role")
+            key = _evidence_key(sp.source_ref)
+            previous = by_ref.setdefault(key, sp.proposed_role)
+            if previous is not sp.proposed_role:
+                conflicts.setdefault(key, {previous}).add(sp.proposed_role)
+        details = tuple(
+            f"{key}: {', '.join(sorted(role.value for role in proposed))}"
+            for key, proposed in sorted(conflicts.items()))
+        for key in conflicts:
+            by_ref.pop(key, None)
+        return by_ref, details
+
+    @staticmethod
     def _reject_unknown_refs(*, considered: tuple[str, ...],
                              claims: tuple[ClaimProposal, ...],
                              relations: tuple[AssertedRelation | ProposedRelation, ...],
@@ -255,13 +285,10 @@ class Adjudicator:
                    resolution_id: str = "R") -> Adjudication:
         considered = tuple(_evidence_key(e) for e in evidence)
         self._reject_duplicate_claim_keys(claims)
+        self._reject_cross_wired_claims(question, claims)
 
-        roles: dict[str, SourceRole] = {}
-        role_refs: list[str] = []
-        for sp in source_role_proposals:
-            _enum(sp.proposed_role, SourceRole, "SourceRoleProposal.proposed_role")
-            roles[_evidence_key(sp.source_ref)] = sp.proposed_role
-            role_refs.append(sp.id)
+        roles, role_conflicts = self._source_roles(source_role_proposals)
+        role_refs = tuple(sorted(sp.id for sp in source_role_proposals))
 
         # A relation may only settle a conflict if it is ASSERTED. The split is by TYPE at
         # runtime, not by an annotation, because an annotation is not enforcement.
@@ -281,15 +308,9 @@ class Adjudicator:
         )
 
         frame, caller, routing_ref = self._route(question, routing)
-        authority = self._authoritative(frame, evidence, roles)
-
-        by_evidence = {c.evidence_id: c for c in claims}
-        # B1: a source offering no claim is SILENT. Silence is recorded and then plays no
-        # further part - it never becomes a negative claim, and never creates a relation.
-        silent = tuple(s for s in authority if s not in by_evidence)
-        speaking = [by_evidence[s] for s in authority if s in by_evidence]
-
-        claim_refs = tuple(c.id for c in speaking)
+        authority: tuple[str, ...] = ()
+        silent: tuple[str, ...] = ()
+        claim_refs: tuple[str, ...] = ()
         notes: list[str] = []
 
         def out(outcome, *, conclusion=None, reason=None, conflict=False,
@@ -301,11 +322,26 @@ class Adjudicator:
                 evidence_refs=evidence,
                 asserted_relation_refs=tuple(dict.fromkeys(asserted_refs)),
                 claim_proposal_refs=claim_refs,
-                source_role_proposal_refs=tuple(role_refs),
+                source_role_proposal_refs=role_refs,
                 routing_proposal_ref=routing_ref)
             return Adjudication(res, frame, caller,
                                 survivors if survivors is not None else authority,
                                 considered, silent, conflict, refused, tuple(notes))
+
+        if role_conflicts:
+            return out(Outcome.UNRESOLVED, conflict=True, reason=(
+                "conflicting source-role proposals leave authority unresolved: "
+                + "; ".join(role_conflicts)), survivors=())
+
+        authority = self._authoritative(frame, evidence, roles)
+
+        by_evidence = {c.evidence_id: c for c in claims}
+        # B1: a source offering no claim is SILENT. Silence is recorded and then plays no
+        # further part - it never becomes a negative claim, and never creates a relation.
+        silent = tuple(s for s in authority if s not in by_evidence)
+        speaking = [by_evidence[s] for s in authority if s in by_evidence]
+
+        claim_refs = tuple(c.id for c in speaking)
 
         if not speaking:
             return out(Outcome.UNRESOLVED,
