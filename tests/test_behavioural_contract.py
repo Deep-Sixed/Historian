@@ -243,22 +243,47 @@ def test_claim_proposal_must_belong_to_the_question(eng):
 
 def test_conflicting_source_roles_are_not_order_dependent(eng):
     evidence = ev("A")
-    a = eng.adjudicate(
-        question=q(),
-        evidence=(evidence,),
-        claims=(ClaimProposal("cp-A", "A", "X", "m", "q1"),),
-        source_role_proposals=(
-            SourceRoleProposal("srp-local", evidence,
-                               SourceRole.LOCAL_OPERATIONAL_DECISION, (evidence,), "m"),
-            SourceRoleProposal("srp-vendor", evidence,
-                               SourceRole.UPSTREAM_VENDOR_MATERIAL, (evidence,), "m"),
-        ),
-        routing=route(LOCAL_FRAME),
-    )
+    local = SourceRoleProposal("srp-local", evidence,
+                               SourceRole.LOCAL_OPERATIONAL_DECISION, (evidence,), "m")
+    vendor = SourceRoleProposal("srp-vendor", evidence,
+                                SourceRole.UPSTREAM_VENDOR_MATERIAL, (evidence,), "m")
+
+    def run(*role_proposals):
+        return eng.adjudicate(
+            question=q(),
+            evidence=(evidence,),
+            claims=(ClaimProposal("cp-A", "A", "X", "m", "q1"),),
+            source_role_proposals=role_proposals,
+            routing=route(LOCAL_FRAME),
+        )
+
+    a = run(local, vendor)
+    b = run(vendor, local)
     assert a.resolution.outcome is Outcome.UNRESOLVED
     assert a.resolution.conclusion is None
     assert "conflicting source-role proposals" in a.resolution.unresolved_reason
+    assert (
+        a.resolution.outcome,
+        a.resolution.conclusion,
+        a.resolution.unresolved_reason,
+        a.authority_refs,
+        a.silent_refs,
+        a.resolution.claim_proposal_refs,
+        a.resolution.routing_proposal_ref,
+        a.resolution.source_role_proposal_refs,
+    ) == (
+        b.resolution.outcome,
+        b.resolution.conclusion,
+        b.resolution.unresolved_reason,
+        b.authority_refs,
+        b.silent_refs,
+        b.resolution.claim_proposal_refs,
+        b.resolution.routing_proposal_ref,
+        b.resolution.source_role_proposal_refs,
+    )
     assert a.authority_refs == ()
+    assert a.silent_refs == ()
+    assert a.resolution.claim_proposal_refs == ()
     assert a.resolution.source_role_proposal_refs == ("srp-local", "srp-vendor")
 
 
