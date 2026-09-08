@@ -1,0 +1,256 @@
+PACKET pkt-HD-14   (14 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: Do these conversations establish whether the documentation workflow involves credential handling?
+
+--- document 0 of 2 (complete) ---
+---
+title: "Claude Code Documentation Workflow"
+conversation_id: 6a4a11f7-6854-83ea-b313-a6023057be58
+created: 2026-07-05
+updated: 2026-07-05
+models: ['gpt-5-5']
+turns: 2
+words: 499
+source: chatgpt-export
+---
+
+# Claude Code Documentation Workflow
+### User
+
+https://www.mintlify.com/blog/how-claude-code-docs-team-uses-mintlify
+
+### Assistant
+
+The URL you linked appears to be a Mintlify blog article about how the Claude Code documentation team uses Mintlify, but that specific page wasn't directly retrievable. However, Mintlify has published several closely related pieces that make their workflow fairly clear. citeturn0search1turn0search0
+
+### Key takeaways from Mintlify's Claude Code documentation workflow
+
+#### 1. Claude Code is treated as a documentation teammate, not an autocomplete tool
+Mintlify's technical writing team uses Claude Code to:
+
+- Read the codebase
+- Analyze recent Git changes
+- Search existing documentation
+- Draft new documentation
+- Review documentation for consistency
+- Update documentation when features change
+
+The workflow is built around repository-wide context rather than isolated prompts. citeturn0search1turn0search0
+
+#### 2. The critical artifact is `CLAUDE.md`
+Instead of repeatedly prompting Claude, they maintain project-specific instructions in a `CLAUDE.md` file that acts as persistent guidance.
+
+Typical contents include:
+
+- Writing standards
+- Documentation structure
+- Voice and style rules
+- Product terminology
+- Review checklists
+- Team workflows
+
+This effectively becomes an operational playbook for the agent. citeturn0search0turn0search1
+
+#### 3. Documentation is increasingly optimized for agents
+Mintlify's broader strategy is that docs are no longer just for humans.
+
+They automatically expose:
+
+- Markdown versions of pages
+- `llms.txt`
+- `llms-full.txt`
+- MCP servers
+- AI-readable content structures
+
+The goal is to make documentation directly consumable by Claude Code, Cursor, ChatGPT, and other coding agents. citeturn0search17turn0search6turn0search2
+
+#### 4. MCP is becoming a major distribution mechanism
+Mintlify generates hosted MCP servers from documentation.
+
+That means an agent can:
+
+- Search docs
+- Retrieve full pages
+- Navigate documentation structure
+- Use documentation as live context during task execution
+
+without scraping websites or relying on training data. citeturn0search6
+
+#### 5. Structured docs materially improve agent performance
+Mintlify reported experiments comparing:
+
+- Minimal docs
+- Human-written docs
+- Mintlify + MCP connected docs
+
+The documented results showed:
+
+- Higher answer precision
+- Better discoverability
+- Fewer tokens consumed
+- Faster task completion
+
+when agents had access to structured documentation and MCP. citeturn0search9
+
+---
+
+### Why this is interesting for your EVECOR / AgentSync work
+
+What Mintlify is doing is conceptually very close to several things you've been building:
+
+| Mintlify | EVECOR direction |
+|-----------|------------------|
+| `CLAUDE.md` | Skills, governance policies, TruthGuard constraints |
+| MCP docs server | AgentSync gateways and governed-read surfaces |
+| AI-readable docs | Wiki/Dreaming published surfaces |
+| Docs as agent interface | DataCore as machine-consumable memory |
+| Automated doc maintenance | Recon/Ledger/Recall generated artifacts |
+
+The strongest idea is not the documentation platform itself. It's the notion that **the primary consumer of documentation is increasingly another agent rather than a human**. Mintlify's entire architecture appears to be converging around that assumption. citeturn0search7turn0search6turn0search15
+
+For EVECOR, that suggests treating:
+
+- Wiki bundles
+- Dreaming manifests
+- Recall digests
+- Ledger claims
+- Governance rules
+
+as first-class agent interfaces, not just human-readable records. That's already consistent with the direction you've been taking with published Dreaming surfaces and AgentSync governance artifacts.
+
+--- document 1 of 2 (complete) ---
+---
+title: "Claude Code Secrets"
+conversation_id: 6a0de152-6534-83ea-bd44-31e078c9a2b1
+created: 2026-05-20
+updated: 2026-05-20
+models: ['gpt-5-5-thinking']
+turns: 8
+words: 1625
+source: chatgpt-export
+---
+
+# Claude Code Secrets
+### User
+
+Both pass clean. Let me do a final diff to confirm exactly what changed:
+
+Bash Show diff of decommission doc changes
+IN
+git diff HEAD -- docs/dev_notes/secret_manager_decommission.md
+
+OUT
+diff --git a/docs/dev_notes/secret_manager_decommission.md b/docs/dev_notes/secret_manager_decommission.md
+index 15b942b..8f08eb0 100644
+--- a/docs/dev_notes/secret_manager_decommission.md
++++ b/docs/dev_notes/secret_manager_decommission.md
+@@ -1,6 +1,6 @@
+ # Secret manager decommission — Bitwarden and Passbolt
+ 
+-**Status:** Repo/runtime cleanup in progress (KeePassXC is final).  
++**Status:** Complete — KeePassXC is the only active secret manager.  
+ **Operator:** Charles approves any **host-level** uninstall or deletion of vault data.
+ 
+ ## Policy (final)
+@@ -24,8 +24,8 @@
+ 
+ | Path | Action |
+ | --- | --- |
+-| `scripts/load-secrets-from-passbolt.sh` | Delete (staged) |
+-| `tests/test_passbolt_secret_loader.py` | Delete (staged) |
++| `scripts/load-secrets-from-passbolt.sh` | Deleted |
++| `tests/test_passbolt_secret_loader.py` | Deleted |
+ 
+ ### Updated in working tree (no legacy terms in tracked content)
+ 
+@@ -58,8 +58,12 @@
+ 
+ ```bash
+ cd /home/jarvis/projects/nexus
+-# Working tree must not mention legacy managers (except policy test split-strings)
+-git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' -- ':!tests/test_secret_manager_policy_static.py' || echo OK
++# Working tree must not mention legacy managers outside the three allowlisted policy/history files
++git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' \
+... [48 more lines of bash elided]
+```bash
+git add apps/recruiter-ui/recruiter-ui.ts docs/dev_notes/secret_manager_decommission.md
+git commit -m "Close secret manager decommission docs"
+```text
+
+Keep it separate from Agent 8 CRM, Agent 10, deploy, `uv.lock`, or workspace cleanup.
+
+### User
+
+... [107 more lines of text elided]
+```text
+KeePassXC vault
+~/.config/Secrets/JARVIS-SECRETS.kdbx
+        ↓
+jarvis-secret
+        ↓
+scripts/load-runtime-secrets-from-keepass.sh
+        ↓
+shell environment variables
+        ↓
+Claude Code / Codex / Cursor / Docker Compose services
+```
+
+## Important distinction
+
+Claude Code does **not** directly fetch from KeePassXC.
+
+It receives secrets only because the launcher starts it inside an already-populated shell:
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+
+1. sources `scripts/load-runtime-secrets-from-keepass.sh`
+2. fetches values through `jarvis-secret`
+... [8 more lines of text elided]
+```bash
+scripts/start-stack.sh
+```text
+
+That script loads the KeePassXC-backed environment first, then starts Docker Compose. Compose passes selected environment variables into the containers.
+
+## Final boundary
+
+... [26 more lines of text elided]
+```
+KeePassXC vault (~/.config/Secrets/JARVIS-SECRETS.kdbx)
+  ↓
+jarvis-secret (CLI accessor)
+  ↓
+scripts/load-runtime-secrets-from-keepass.sh (exports env vars)
+  ↓
+Shell environment
+  ↓
+Claude Code / Codex / Cursor   ← via scripts/launch-ai-brain.sh
+Docker Compose services        ← via scripts/start-stack.sh
+```
+
+## Correct AI tool launch command
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+1. Sources `scripts/load-runtime-secrets-from-keepass.sh` → fetches via `jarvis-secret`, exports to shell
+2. Sources `scripts/export-agent9-datacore-env.sh` → Agent 9 Datacore URL
+3. Verifies `NEXUS_METADATA_EXCHANGE_DATABASE_URL` is present (refuses to launch without it unless `--allow-no-agent9`)
+... [43 more lines of text elided]
+```text
+scripts/load-runtime-secrets-from-keepass.sh
+```
+
+Make sure it is spelled **`keepass`**, not **`keeppass`**, anywhere it was added.
+
+--- end of pkt-HD-14: 2 document(s) ---

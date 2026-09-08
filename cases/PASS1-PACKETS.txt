@@ -1,0 +1,767 @@
+PASS 1 — PACKET ADEQUACY ONLY
+
+For each packet below, answer one question and one question only:
+
+    Does the supplied evidence contain enough material to answer the packet's question?
+
+Do NOT answer the questions themselves. Do not speculate about what the answer might be.
+This pass decides only whether each packet is worth adjudicating at all.
+
+For each packet reply on one line:
+
+    <PACKET_ID>  ADEQUATE
+    <PACKET_ID>  PACKET_INSUFFICIENT  <what is missing or why the material is inadequate>
+
+Rejecting a packet is normal and useful — the excerpts were selected mechanically, so some
+will simply miss what their question needs. There is no expected number of rejections.
+
+Your insufficiency note must describe WHAT IS MISSING, not what you think the answer is.
+Someone uses that note to choose better excerpts; if it carries your conclusion, the
+rebuilt packet is spoiled before anyone sees it.
+
+    write this   "the excerpt covers only the opening exchange; the question asks about a
+                  later decision that isn't present"
+    not this     "the answer is obviously X but the excerpt doesn't show it"
+
+================================================================================
+
+PACKET pkt-HB-01
+QUESTION: What is the current authentication arrangement for the MCP gateway?
+
+--- excerpt 0 ---
+# MCP Gateway Auth with Authentik
+### User
+
+mcp_gateway requires auth how do we add an auth to it with authentik
+
+### User
+
+you have a stroke
+
+### Assistant
+
+No. The clean answer is: put **Authentik in front of `mcp_gateway` as the OAuth/OIDC gate**, not inside every MCP server. I’ll give the corrected path directly.
+
+### Assistant
+
+No — bad phrasing / bad read.
+
+For **`mcp_gateway`**, do **not** use Authentik proxy-cookie auth as the primary mechanism. MCP clients need a clean **Bearer token / OAuth flow**, not just browser SSO cookies.
+
+## Correct architecture
+
+```text
+Client / ChatGPT / Claude / Cursor
+        |
+        | OAuth login via Authentik
+--- excerpt 1 ---
+# Authentik Installation Complete
+### User
+
+Server is healthy. The "unhealthy" was a transient status during the initial DB migration — it recovered on its own. Now write the Agent 9 record.
+
+Update Todos
+
+Generate AUTHENTIK_PG_PASSWORD and AUTHENTIK_SECRET_KEY, store in KeePass
+
+Add AUTHENTIK_PG_PASSWORD and AUTHENTIK_SECRET_KEY to jarvis-secret APPROVED_NAMES
+
+Create authentik user and database in hindsight-db-crms
+
+Create deploy/authentik/compose.yml wired to hindsight-db-crms
+
+Create deploy/authentik/run-with-keepass.sh launcher
+
+Pull Authentik images and start the stack
+Metadata-exchange [metadata_exchange_record_task_completion]
+OUT
+{"result":"{\"ok\": true, \"entity_id\": \"task_completion_claudecode_authentik_install_20260604\", \"database_mutated\": true}"}
+Authentik is live. Here's the summary:
+
+Running containers:
+--- excerpt 2 ---
+# Authentik Nexus Datacore Setup
+### User
+
+[image_asset_pointer]
+
+### Assistant
+
+You’re on the **Authentik → New application** wizard.
+
+For **Nexus Datacore / UGA authenticated connector exposure**, use:
+
+| Field | Value |
+|---|---|
+| **Application Name** | `Nexus Datacore` |
+| **Slug** | `nexus-datacore` |
+| **Group** | `Nexus` or `JARVIS` |
+| **Policy engine mode** | `ANY` |
+
+Then click **Next**.
+
+## Provider choice
+
+On **Choose a Provider**, pick based on what you are protecting:
+
+### Best first choice for Datacore exposure
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-02
+QUESTION: Which reverse proxy arrangement is in use, and why was it chosen?
+
+--- excerpt 0 ---
+# Nginx Reverse Proxy Explained
+### User
+
+nginx reverse proxy  what is it
+
+### Assistant
+
+An **nginx reverse proxy** is basically a **front desk / traffic cop** for your services.
+
+Instead of users going directly to each app like:
+
+```text
+http://10.0.0.151:3000
+http://10.0.0.151:2024
+http://10.0.0.151:8088
+http://10.0.0.151:9090
+```
+
+they go to **one entry point**, usually nginx on ports **80/443**:
+
+```text
+http://10.0.0.151
+https://nexus.local
+https://commandcenter.yourdomain.com
+```
+--- excerpt 1 ---
+# Authentik Installation Complete
+### User
+
+Server is healthy. The "unhealthy" was a transient status during the initial DB migration — it recovered on its own. Now write the Agent 9 record.
+
+Update Todos
+
+Generate AUTHENTIK_PG_PASSWORD and AUTHENTIK_SECRET_KEY, store in KeePass
+
+Add AUTHENTIK_PG_PASSWORD and AUTHENTIK_SECRET_KEY to jarvis-secret APPROVED_NAMES
+
+Create authentik user and database in hindsight-db-crms
+
+Create deploy/authentik/compose.yml wired to hindsight-db-crms
+
+Create deploy/authentik/run-with-keepass.sh launcher
+
+Pull Authentik images and start the stack
+Metadata-exchange [metadata_exchange_record_task_completion]
+OUT
+{"result":"{\"ok\": true, \"entity_id\": \"task_completion_claudecode_authentik_install_20260604\", \"database_mutated\": true}"}
+Authentik is live. Here's the summary:
+
+Running containers:
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-03
+QUESTION: What is the agreed name for the bot discussed in this conversation?
+
+--- excerpt 0 ---
+# Hermes Bot Name
+### User
+
+My Hermes (Bot name is Gadget 1497008207371960402)
+
+### Assistant
+
+Got it — Hermes/OpenClaw bot name: **Gadget**  
+Discord bot ID: **1497008207371960402**
+
+### User
+
+[image_asset_pointer]
+
+### Assistant
+
+Yep — that screenshot confirms:
+
+**Bot display name:** Gadget  
+**Old/underlying username:** SentinelBot#0729  
+**App/bot ID you gave me:** 1497008207371960402  
+**Mutual server:** 1  
+**Role assigned:** Gadget  
+**Created on:** Apr 23, 2026
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-04
+QUESTION: What was concluded about the Ubuntu apport bug?
+
+--- excerpt 0 ---
+# Bug in Ubuntu Apport
+### User
+
+Charles Snyder
+what do you see
+
+
+Gemini
+Responding with 3 Flash Preview
+Thinking
+I see a collection of source files and documentation across several different programming environments, including Python, C++, Perl, and Linux kernel headers.
+
+Specifically, I've identified several critical bugs in the Python script /usr/share/apport/symptoms/display.py that would cause it to crash during execution. I also see standard library headers for C++ (libstdc++), Python C API headers, and documentation for Perl modules.
+
+Code Review and Suggestions
+/usr/share/apport/symptoms/display.py
+The problem_boot_fail function in this file contains several logic errors:
+
+Undefined Variable: It attempts to append to a variable named choices which has not been initialized. It initializes choice instead.
+Indexing Error: It attempts to return an item from problem (undefined), likely intending to use the problems list.
+Logical Flow: The mapping between the user's selection and the original problems metadata is broken because it tries to use the string choice to index a list.
+In the run function:
+
+Tagging Logic: The check for ksmserver to tag Kubuntu bugs is a good diagnostic step, but the subsequent if blocks could be more efficiently handled using a mapping or at least elif to avoid unnecessary checks once a choice is matched.
+Here is the diff to fix the functional errors in the Python script:
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-05
+QUESTION: What corrections were made during the audit review?
+
+--- excerpt 0 ---
+# Audit Review and Corrections
+### Assistant
+
+This audit is **mostly useful**, but I’d treat it as a **Gemini-generated review draft**, not gospel. It has a few stale/wrong labels mixed into otherwise good points. fileciteturn0file0
+
+Big correction: **Agent 7 is no longer Google Sheet Logger.** In your current architecture, Agent 7 is **ProtonMail Monitor**, and Agent 8 is **Mission Control / Tracker projection**. Google Sheets is now legacy/export-only after your Agent 8 migration.
+
+The best takeaways from this audit are:
+
+1. **Agent 5 silent failure logging is worth fixing**
+   
+   This suggestion is legit. Anywhere Agent 5 does:
+
+```python
+except Exception:
+    pass
+```
+
+especially around HITL review writes, it should probably emit at least a warning to `stderr` or your audit log. Not enough to break the pipeline, but enough so schema/db-lock/path problems do not disappear into the void.
+
+Better pattern:
+
+```python
+except Exception as e:
+    print(
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-06
+QUESTION: Which components were renamed, and what were they called before?
+
+--- excerpt 0 ---
+# Agent 7 8 Rename Instructions
+### User
+
+provide instructions for renaming Agent 8 into Agent 7 and agent 7 into Agent 8 Dashboard / tracking
+
+### Assistant
+
+Absolutely. The cleanest way to do this is:
+
+**Agent 7 becomes ProtonMail Monitor**  
+**Agent 8 becomes Dashboard / Tracker / Reporting**
+
+So the new order becomes:
+
+```text
+Agent 1  Job Finder
+Agent 2  Job Cleaner
+Agent 3  Fit Scorer
+Agent 4  Application Intelligence
+Agent 5  Form Fill Planner
+Agent 6  Gmail Monitor
+Agent 7  ProtonMail Monitor
+Agent 8  Dashboard / Tracker
+```
+--- excerpt 1 ---
+# Agent 5B Naming Scheme
+### User
+
+Agent 8 responsibilities:
+  detect CAPTCHA / auth wall / rate limit / broken page
+  classify blocker type
+  save screenshot and URL
+  mark role as manual_review_required or source_blocked
+  suggest alternate apply route:
+    - company careers page
+    - ATS mirror
+    - recruiter/contact outreach
+    - saved listing for later
+  resume Agent 5 after user clears the page
+
+Instead of calling this Agent 8 in our  naming schema what number should this be  if Agent 5 cant bypass CAPTCHA's on its own
+
+### Assistant
+
+Call it **Agent 5B** or **Agent 5.5**, not Agent 8.
+
+Best fit in your schema:
+
+**Agent 5A — Form Fill / Submit Planner**  
+Handles normal application-page inspection, form-fill planning, safe submission logic, and retry after blockers are cleared.
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-07
+QUESTION: What role does Hermes have in the system?
+
+--- excerpt 0 ---
+# Hermes Agent Overview
+### User
+
+https://github.com/NousResearch/Hermes-agent
+
+### Assistant
+
+I’m opening the repo and pulling the important bits so I can give you a grounded read instead of guessing.
+
+### Assistant
+
+That repo is basically the newer **Hermes Agent** project from Nous Research, and it looks like it’s meant to be a more full-featured successor/companion in the same ecosystem as OpenClaw. The repo itself describes Hermes as “the agent that grows with you,” and the README shows it supports CLI use plus messaging platforms like Telegram, Discord, Slack, WhatsApp, Signal, and email. It also calls out tools, memory, MCP integration, cron scheduling, and multiple terminal backends. citeturn497610view1turn497610view3
+
+The part most relevant to what you were asking earlier: **Hermes has a built-in migration path from OpenClaw**. The README says `hermes setup` can detect `~/.openclaw` and offer migration, and there’s also a direct command:
+```bash
+hermes claw migrate
+```
+It can also do a dry run:
+```bash
+hermes claw migrate --dry-run
+```
+According to the repo, it can import settings, memories, skills, allowlists, messaging settings, and some API keys from OpenClaw. citeturn497610view3
+
+Install-wise, their quick install is:
+```bash
+--- excerpt 1 ---
+# Hermes Bot Name
+### User
+
+My Hermes (Bot name is Gadget 1497008207371960402)
+
+### Assistant
+
+Got it — Hermes/OpenClaw bot name: **Gadget**  
+Discord bot ID: **1497008207371960402**
+
+### User
+
+[image_asset_pointer]
+
+### Assistant
+
+Yep — that screenshot confirms:
+
+**Bot display name:** Gadget  
+**Old/underlying username:** SentinelBot#0729  
+**App/bot ID you gave me:** 1497008207371960402  
+**Mutual server:** 1  
+**Role assigned:** Gadget  
+**Created on:** Apr 23, 2026
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-08
+QUESTION: What caused the Agent 9 outage?
+
+--- excerpt 0 ---
+# Nexus/JARVIS Agent 9 Outage
+### Assistant
+
+The attached transcript shows the full diagnosis and recovery sequence for the Nexus/JARVIS Agent 9 outage. Key findings:
+
+- `command-center-mail` crash loop was caused by missing Gmail OAuth env vars:
+  - `GMAIL_CLIENT_ID`
+  - `GMAIL_CLIENT_SECRET`
+  - `GMAIL_REFRESH_TOKEN`
+
+- `command-center-metadata-exchange` unhealthy state was caused by a misconfigured DB URL:
+  - Current:
+    `postgresql://...@command-center-db:5432/nexus`
+  - Required:
+    `postgresql://...@command-center-db:5432/nexus_metadata_exchange`
+
+- Database verification proved:
+  - `nexus_metadata_exchange` database exists
+  - user `nexus` can connect successfully
+  - failure is strictly environment/configuration related, not migrations or schema corruption
+
+- The logs also confirm the architecture rule already documented in Nexus:
+  - `mcp.json` must not contain secrets
+  - runtime parent shell must inject `NEXUS_METADATA_EXCHANGE_DATABASE_URL`
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-09
+QUESTION: Was the Comcast business outage ever attributed to a specific cause?
+
+--- excerpt 0 ---
+# Comcast Business Outage
+### User
+
+[image_asset_pointer]
+remember this
+
+### Assistant
+
+Got it — I saved that Comcast Business outage notice for 113 S Poplar St.
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-10
+QUESTION: How is Tailscale configured for the llama.cpp service?
+
+--- excerpt 0 ---
+# Llama.cpp Tailscale Configuration
+### User
+
+I would label it as "llama.cpp / tailscale"
+
+then add the Tailscale IP to the json file in cloud_Api 
+
+Leave local running.
+
+
+
+Cloud selection should only change the active Cursor override lane, not tear down the host runtime.
+
+
+
+Better behavior:
+
+
+
+Cloud selected
+
+  → grey out local Model menu
+
+  → grey out local Context menu
+--- excerpt 1 ---
+# Tailscale vs Tailescale
+### User
+
+tailescale
+
+### Assistant
+
+**Tailscale** is spelled:
+
+```text
+Tailscale
+```
+
+Not:
+
+```text
+tailescale
+```
+
+For Linux commands:
+
+```bash
+tailscale status
+tailscale ip -4
+sudo tailscale up
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-11
+QUESTION: What Authentik configuration was completed for the Datacore?
+
+--- excerpt 0 ---
+# Authentik Nexus Datacore Setup
+### User
+
+[image_asset_pointer]
+
+### Assistant
+
+You’re on the **Authentik → New application** wizard.
+
+For **Nexus Datacore / UGA authenticated connector exposure**, use:
+
+| Field | Value |
+|---|---|
+| **Application Name** | `Nexus Datacore` |
+| **Slug** | `nexus-datacore` |
+| **Group** | `Nexus` or `JARVIS` |
+| **Policy engine mode** | `ANY` |
+
+Then click **Next**.
+
+## Provider choice
+
+On **Choose a Provider**, pick based on what you are protecting:
+
+### Best first choice for Datacore exposure
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-12
+QUESTION: What is the state of the Nexus migration?
+
+--- excerpt 0 ---
+# Nexus Migration Complete
+### User
+
+Nexus is up and fully migrated
+
+### Assistant
+
+Hell yeah — saved.
+
+Nexus is now the current name/state: **up, fully migrated, and no longer Talent-Beacon**.
+
+### User
+
+We have the operating system running but not mission Control  or nothing in it it is live http://10.0.0.151:3000/dashboard
+
+### Assistant
+
+Got it — saved the corrected status:
+
+**Nexus is live at:**  
+`http://10.0.0.151:3000/dashboard`
+
+But the real state is:
+
+**Operating system / shell is running** ✅
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-13
+QUESTION: What was decided about the TB-31 setup?
+
+--- excerpt 0 ---
+# TB-31 Setup and Migration
+### User
+
+provide me instrctions for setting up TB 31 and whatever was left in migrating the project
+
+### Assistant
+
+Absolutely — here’s the clean “hand this to Codex/Cursor/Claude Code” version for **TB-31** plus the remaining migration cleanup.
+
+## TB-31 Setup Goal
+
+**TB-31 should finish the Mission Control migration for Talent-Beacon.**
+
+Right now Talent-Beacon has two worlds partially overlapping:
+
+1. The newer **Talent-Beacon LangGraph / recruiter-ui** direction.
+2. The older/imported **Mission Control dashboard patterns** from Job Apps.
+
+TB-31 should make Talent-Beacon’s UI use the real existing Mission Control-style dashboard/workbook structure instead of the temporary/simple dashboard that was scaffolded during the migration.
+
+The key issue you already spotted:
+
+> The dashboard is running, but it did not pull over the already-built Mission Control dashboard we had.
+
+So TB-31 is not “make a new dashboard from scratch.”
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-14
+QUESTION: What are the weekly usage limits that apply to Codex?
+
+--- excerpt 0 ---
+# Codex weekly usage limit
+### User
+
+[image_asset_pointer]
+Codex weekly usage
+
+### Assistant
+
+Your screenshot shows **Codex weekly usage is tapped out**:
+
+- **5-hour usage limit:** 100% remaining  
+  This means your short rolling window is available again.
+
+- **Weekly usage limit:** **0% remaining**  
+  This is the real blocker. You are at the weekly Codex cap.
+
+- **Credits remaining:** 0  
+  You have no extra paid credits to keep using Codex past the plan limit.
+
+- **Reset:** **May 5, 2026 at 7:58 PM**  
+  That is when your weekly Codex usage should come back.
+
+OpenAI’s help page says Codex limits vary by plan and by task complexity: larger codebases, long-running tasks, and sessions that require more context can consume much more allowance per message. citeturn574172search3
+
+So the weird part is: **your 5-hour meter can say 100% while your weekly meter says 0%.** They are separate buckets. Right now, the weekly bucket is empty.
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-15
+QUESTION: What disk capacity constraints were identified?
+
+--- excerpt 0 ---
+# Freeing Disk Space
+### User
+
+Disk status
+Drive	Mount	Size	Used	Free	Status
+/dev/sda2
+/ (system)
+468 GB
+440 GB
+4 GB
+100% full
+/dev/sdb1
+/mnt/jarvis-data
+469 GB
+46 GB
+399 GB
+Plenty of space
+The system drive is the problem. Your second drive is mostly empty.
+
+What is eating space (biggest first)
+1. Docker / containerd — ~190 GB (largest culprit)
+Docker reports this on the root disk, in /var/lib/containerd (root-only, so normal scans miss it):
+
+Type	Size	Notes
+Images
+--- excerpt 1 ---
+# Using Second Drive for Docker
+### User
+
+why can't we using the second hard drive for 100% all of docker
+
+### Assistant
+
+You **can** use the second hard drive for effectively **all Docker/container payload data**. The reason it is not already “100% all Docker” is that Docker is split across more than one storage layer.
+
+## The issue
+
+On JARVIS, Docker is not just:
+
+```text
+/var/lib/docker
+```
+
+There is also:
+
+```text
+/var/lib/containerd
+```
+
+That matters because modern Docker uses **containerd** underneath it. Even if Docker’s `data-root` is moved to:
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-16
+QUESTION: Which Python version applies to this project?
+
+--- excerpt 0 ---
+# Python 3.14.5 Conversion
+### User
+
+github.com/verbio-labs/llm-ledger
+ 
+
+
+
+Clone this to projects 
+
+
+
+Converti it to python 3.14.5
+
+
+
+Convert it to English
+
+
+
+Strip out everything that isn't code 
+
+cleaned
+Now verify what remains and run a quick sanity check:
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-17
+QUESTION: How is the GitHub integration set up?
+
+--- excerpt 0 ---
+# Nexus AUDIT
+### User
+
+Still unstaged (not in this commit)
+Other work remains in the tree (agents, compose, etc.). docs/secrets.md also has an unstaged AI-brain launcher section — separate from the decommission commit; commit or discard when that work is ready.
+
+Host Passbolt/Bitwarden services, vault files, and Agent 9 backups were not touched, per the boundary you set.
+
+Good commit boundary.
+
+
+
+Current known-good state
+
+Commit: 9d4ed24
+
+Branch: main
+
+Scope: KeePassXC-only policy, docs, guardrails, and stale Bitwarden/Passbolt cleanup
+
+Verification: passed
+
+Legacy grep: clean except allowlisted policy/decommission docs
+
+Host/vault destructive cleanup: not touched
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-18
+QUESTION: What is the security posture of the deployed stack?
+
+--- excerpt 0 ---
+# Nexus Security Audit Summary
+### Assistant
+
+Your uploaded report is basically showing a targeted Nexus security + health audit against the JARVIS environment and current dirty-tree changes. fileciteturn0file0L1-L254
+
+Big picture: the audit came back pretty clean from a security standpoint, but the environment health check exposed a Postgres/env-loading issue causing a chunk of API/storage tests to fail.
+
+Key takeaways:
+
+- Git state:
+  - main branch ahead of origin by 43 commits
+  - 4 modified files not staged:
+    - `docker-compose.stack.yml`
+    - `docs/secrets.md`
+    - `scripts/load-secrets-from-passbolt.sh`
+    - `tests/test_passbolt_secret_loader.py`
+  - no untracked malware/suspicious artifacts were reported fileciteturn0file0L1-L20
+
+- Security review result:
+  - No confirmed exploitable vulnerabilities
+  - All 4 investigated findings were classified as false positives with low confidence scores (2/10) fileciteturn0file0L188-L254
+
+The strongest security positives noted:
+
+- `hmac.compare_digest()` used for auth token validation
+--- excerpt 1 ---
+# Fix Security Hardening
+### Assistant
+
+Use this as the next Cursor/Codex prompt for Talent-Beacon. It continues from the audit/fix transcript you shared. fileciteturn0file0
+
+```text
+In /home/jarvis/projects/talent-beacon, fix audit findings 3,4,5,7,8,9,10,11.
+
+Context:
+- Critical fixes already started:
+  - gmail_drafts.py: add token_file.chmod(0o600) after token_file.write_text(creds.to_json())
+... [101 more lines of text elided]
+```
+
+Tiny note: item **5** and **10/11** are basically the same dependency-hardening issue, so I’d let the coding tool handle them together instead of making three separate dependency passes.
+
+### User
+
+Working Claude Code at the moment (ATM)
+
+### Assistant
+
+Got it — since you’re using **Claude Code ATM**, I’d feed it the prompt as-is, but maybe prepend this so Claude doesn’t over-widen the job:
+
+```text
+--------------------------------------------------------------------------------

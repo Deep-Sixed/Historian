@@ -1,0 +1,207 @@
+PACKET pkt-HD-09   (9 of 20)
+
+Before judging: this packet should contain 1 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What did the skill definition end up containing?
+
+--- document 0 of 1 (complete) ---
+---
+title: "Skill.md Agent 5 Created"
+conversation_id: 6a058f1f-b5dc-83ea-8f6f-0104d97f685a
+created: 2026-05-14
+updated: 2026-05-14
+models: ['gpt-5-5-thinking']
+turns: 18
+words: 1303
+source: chatgpt-export
+---
+
+# Skill.md Agent 5 Created
+### User
+
+CREATE SKILL.MD AGENT 5
+
+### Assistant
+
+I’ll consolidate the Agent 5A + 5B files into one Claude-ready `SKILL.md`, keeping the implementation-focused setup style and making Agent 5’s boundaries crystal clear without burying it in “do not” boilerplate.
+
+### Assistant
+
+I found the key contract pieces: Agent 5A has `plan`, `inspect`, `submit`, and `backlog`; Agent 5B owns blocker triage/recovery from the human queue. I’m turning that into one operational contract instead of two separate mini-docs.
+
+### Assistant
+
+Done — I created the consolidated Agent 5 `SKILL.md`.
+
+Download it here: [AGENT_5_SKILL.md](sandbox:/mnt/data/AGENT_5_SKILL.md)
+
+I merged Agent 5A’s `plan / inspect / submit / backlog` contract with Agent 5B’s blocker triage/recovery contract. The file preserves the key boundaries: `ready_for_submit_worker != submitted`, no Agent 5 writes to `state/application_events.jsonl`, CAPTCHA stays a human blocker, and Agent 5B handles recovery routing. Source grounding came from the uploaded Agent 5A and 5B README/rules/test files. fileciteturn1file6 fileciteturn1file4 fileciteturn1file0 fileciteturn1file16
+
+### User
+
+Seperate the purpose from the Task
+
+### Assistant
+
+Yep — I’ll split the high-level **Purpose** from the concrete **Tasks/Responsibilities**, so Claude doesn’t blur “why Agent 5 exists” with “what Agent 5 must do.”
+
+### Assistant
+
+Done — I separated **Purpose** from **Tasks** in the Agent 5 `SKILL.md`.
+
+Updated file: [AGENT_5_SKILL.md](sandbox:/mnt/data/AGENT_5_SKILL.md)
+
+### User
+
+Make a new SKILL.MD and SCRIPTS
+
+### Assistant
+
+Got it — I’ll make a fresh Agent 5 package, not just patch the previous file: new `SKILL.md` plus runnable helper/verification scripts.
+
+### Assistant
+
+I’m going to generate it as a small package: `SKILL.md`, three scripts, and a zip so you can drop it straight into the repo.
+
+### Assistant
+
+Done — created a fresh Agent 5 package with:
+
+- `SKILL.md`
+- `scripts/verify_skill.sh`
+- `scripts/verify_agent5_boundaries.sh`
+- `scripts/smoke_agent5_flow.sh`
+- `install_agent5_skill.sh`
+
+Downloads:
+
+[SKILL.md](sandbox:/mnt/data/agent5_skill_package/SKILL.md)  
+[agent5_skill_package.zip](sandbox:/mnt/data/agent5_skill_package.zip)
+
+### User
+
+What would you like to do with these? A few options:
+
+Install them — run install_agent5_skill.sh to deploy the SKILL.md and scripts into the job-applications repo
+Review them — check for issues or gaps before installing
+Find the target repo — locate where the job-applications project lives on this machine first
+What's the goal?
+
+### Assistant
+
+I’d pick **Install them** first, then immediately run the verification scripts.
+
+Use this:
+
+```bash
+cd /home/tiny10/job-applications-ai-agents
+
+# Copy the package contents into the repo first if needed, then:
+bash install_agent5_skill.sh .
+
+... [8 more lines of bash elided]
+```
+
+My recommendation for the response to Claude/Codex:
+
+```text
+Install them into the job-applications repo, then run the three validation scripts. The goal is to deploy the new Agent 5 SKILL.md plus helper scripts, verify that Purpose and Tasks are separated, confirm Agent 5 does not write application events or bypass CAPTCHA/human checks, and smoke-test the Agent 5 plan → blocked submit gate → Agent 5B recovery routing flow.
+```
+
+One small note: before committing, make sure the package lands in the right project root and not inside `/mnt/data` or a nested temp folder.
+
+### User
+
+The boundary script is failing because Agent 5's Python source files don't exist yet — Agent 5 hasn't been implemented. Let me confirm what the smoke test would also hit.
+
+Bash Run smoke test to confirm the failure point
+IN
+scripts/smoke_agent5_flow.sh . 2>&1 | head -5
+
+OUT
+FAIL: missing agents/step_05a_form_fill_submit_planner/agent5a_form_fill_submit_planner.py
+Here's the full picture:
+
+Results:
+
+Script	Result	Reason
+verify_skill.sh	✅ PASS	SKILL.md has correct structure, Purpose before Tasks, no bad agent splits, all required boundary text present
+verify_agent5_boundaries.sh	❌ FAIL	agents/step_05a_form_fill_submit_planner/agent5a_form_fill_submit_planner.py missing
+smoke_agent5_flow.sh	❌ FAIL	Same — needs the Agent 5A planner Python script to exist
+Root cause: The boundary and smoke scripts are gating tests for Agent 5's implementation, which hasn't been built yet. The nexus repo already uses a different path convention for agents:
+
+
+src/nexus/skills/agent_01_recruiter_intake/
+src/nexus/skills/agent_02_job_cleaner/
+src/nexus/skills/agent_03_fit_scorer/
+src/nexus/skills/agent_04_packet_builder/
+But the scripts expect the old job-applications-ai-agents layout (agents/step_05a_*/). The SKILL.md itself notes: "If this skill is ported into Nexus on JARVIS, keep the same Agent 5 contract and update paths to the Nexus repository root before running commands."
+
+Next step: The boundary and smoke tests will pass once Agent 5A (agent5a_form_fill_submit_planner.py) and Agent 5B (agent5b_blocker_triage_recovery.py) are implemented under the nexus path convention. Want to start building Agent 5 now?
+
+
+Dont mention Agent 5 being A or B no 5A and no 5B agents just Agent 5 express this to Claude
+
+### Assistant
+
+Send Claude this:
+
+```text
+Important correction: there is only one Agent 5.
+
+Do not describe, create, document, or test separate “Agent 5A” or “Agent 5B” agents. Those labels came from old source material and should be collapsed into one Agent 5 implementation.
+
+Agent 5 should live under the Nexus agent path convention, likely:
+... [38 more lines of text elided]
+```
+
+### User
+
+Everything green. Here's the full summary:
+
+All three verification scripts: PASS
+
+Script	Result
+verify_skill.sh	✅ PASS
+verify_agent5_boundaries.sh	✅ PASS
+smoke_agent5_flow.sh	✅ PASS
+Tests: 59/59 Agent 5 + 358/358 full suite
+
+What was built:
+
+src/nexus/skills/agent_05_form_submit_gate/form_submit_gate.py — single implementation file with all five modes: plan, backlog, inspect, submit, triage
+src/nexus/skills/agent_05_form_submit_gate/main.py — CLI entrypoint
+tests/test_agent_05_form_submit_gate_skill.py — 59 tests covering the invariants, all modes, and edge cases
+Fixtures: two packet JSONs, two evidence JSONs
+All three scripts updated to Nexus paths and language (no more 5A/5B, no old step_05* paths)
+SKILL.md updated in both the repo root and inside the skill directory
+The core invariant submitted = False is enforced on every code path and tested explicitly. No code path touches application_events.jsonl.
+
+Seperate the purpose from the Task
+
+### Assistant
+
+Clean build — that’s a good checkpoint. I’ll rewrite the current Agent 5 `SKILL.md` so **Purpose** stays only “why Agent 5 exists,” and **Task** becomes the concrete execution contract.
+
+### Assistant
+
+Done — I separated **Purpose** from **Task** in the current Nexus Agent 5 `SKILL.md`.
+
+Updated file: [AGENT_5_SKILL_PURPOSE_TASK_SEPARATED.md](sandbox:/mnt/data/AGENT_5_SKILL_PURPOSE_TASK_SEPARATED.md)
+
+Send Claude this:
+
+```text
+Update Agent 5 SKILL.md so Purpose and Task are separate.
+
+Purpose should only explain why Agent 5 exists:
+- safe application-form handoff layer
+- protects the pipeline from unsafe or ambiguous form activity
+... [13 more lines of text elided]
+```
+
+The current implementation already supports one Agent 5 with `plan`, `backlog`, `inspect`, `submit`, and `triage` modes, and the CLI routes through `nexus.skills.agent_05_form_submit_gate.main`. fileciteturn2file0 fileciteturn2file1
+
+--- end of pkt-HD-09: 1 document(s) ---

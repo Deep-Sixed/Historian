@@ -1,0 +1,223 @@
+PACKET pkt-HD-10   (10 of 20)
+
+Before judging: this packet should contain 1 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What conclusion was reached about the OpenRouter arrangement?
+
+--- document 0 of 1 (complete) ---
+---
+title: "OpenRouter AgentCore Overview"
+conversation_id: 6a54caff-d3d0-83ea-a95d-be38725c58d3
+created: 2026-07-13
+updated: 2026-07-13
+models: ['gpt-5-6-thinking']
+turns: 17
+words: 1170
+source: chatgpt-export
+---
+
+# OpenRouter AgentCore Overview
+### User
+
+OpenRouter/ is the actual substance of the ContextForge-wired side — a whole AgentCore inference-dispatch subsystem, not just LiteLLM config. Breaking down what's actually in it, from what I found earlier this session:
+
+agentcore/ — the real application. A FastAPI service (main.py, title "ContextForge LiteLLM Dispatch") with its own routing.py, dispatch.py, registry.py, probes.py, pull_rendezvous.py, db.py. This is what gets built into its own Docker image (nexus-agentcore:local) in the reference compose file — genuine application code, not just config.
+
+agentcore_mcp/ — a control_plane/ client/server pair, exposing that dispatch service's control surface over MCP.
+
+migrations/ — 4 raw SQL files (001_agentcore_schema.sql through 004_pull_rendezvous_v2.sql) plus a verification shell script — this thing has its own Postgres schema, separate from both ContextForge's DB and litellm-local's DB.
+
+registry/ — YAML files (agent_nodes.yaml, inference_profiles.yaml) declaring which external agents can connect and what inference profiles they get routed to.
+
+litellm-config/ — the actual LiteLLM-facing pieces:
+
+consumers/ — per-agent connection docs + connect scripts for ~15 different clients (Cursor, Codex, Claude Code, Hermes, pi_agent, opencode, continue_vscode, ensemble, etc.)
+litellm_plugins/ — custom LiteLLM callback plugins: hindsight_memory (ties into the Hindsight memory system we discussed earlier), custom_logger, combine_system_messages, remove_name
+scripts/ — key-generation and KeePassXC-batch-write helpers
+deployment/ — compose.reference.yml (the template I checked — nothing from it currently running) and an nginx bridge config for exposing the host-network LiteLLM proxy to Docker-bridge containers.
+
+tests/ — a real pytest suite for the AgentCore dispatch/routing/probes logic (7 test files).
+
+Dockerfile — builds the AgentCore image.
+
+So in one line: OpenRouter/ is a self-contained inference-dispatch control plane (own DB schema, own FastAPI app, own MCP control surface) that sits between many different agent clients and LiteLLM/ContextForge — not a config folder, an actual unbuilt service.
+
+
+Review this and then in small terms tell me what this is
+
+### Assistant
+
+**OpenRouter is an agent traffic controller.**
+
+It sits between tools like **Codex, Claude Code, Cursor, and Hermes** and the actual AI models served through **LiteLLM**.
+
+It:
+
+- Decides which model or inference profile each agent should use.
+- Dispatches requests to LiteLLM.
+- Tracks agents, routes, probes, and connection state in its own database.
+- Exposes its controls through an MCP server.
+- Adds custom LiteLLM behavior, logging, and Hindsight memory integration.
+
+So it is **not OpenRouter.ai and not merely LiteLLM configuration**. It is a separate **AgentCore routing and control-plane application** that was designed but is currently **not deployed or running**.
+
+### User
+
+I remember working on something like this
+
+### Assistant
+
+You did. This appears to be **the same AgentCore project you worked on around June 20, 2026**.
+
+You were building it as an **SD-WAN-style inference router**:
+
+**Codex / Claude Code / Cursor / Hermes / OpenCode / Agent Pi**  
+→ **AgentCore dispatch and inference profiles**  
+→ **LiteLLM**  
+→ **OpenRouter, local models, or other cloud providers**
+
+The work included:
+
+- `dispatch.py` routing requests according to inference profiles
+- `registry/inference_profiles.yaml`
+- Agent registration and health probing
+- The `:4011/mcp` control plane
+- MCP tools such as route, dispatch, list agents, and session status
+- Pull-rendezvous support for agents that could not accept inbound connections
+- A separate Postgres schema
+- Tests for profile-based LiteLLM request modification
+
+So this is not merely *similar* to something you remember. **OpenRouter/ contains the older AgentCore inference-dispatch system you actually designed and worked on.**
+
+The confusing part is the later naming change:
+
+- **Old AgentCore:** this inference-routing and control-plane subsystem
+- **Current EVECOR AgentCore:** local AI runtime, llama.cpp, harnesses, and evaluation
+- **RouterCore:** eventually inherited the gateway, routing, LiteLLM, ContextForge, MCP, A2A, and ACP responsibilities
+
+That means the code is real prior work, but its name and architectural ownership became outdated as the system evolved.
+
+### User
+
+that's it the MLPS ?
+
+### User
+
+or MLP
+
+### Assistant
+
+You mean **MPLS** — *Multiprotocol Label Switching*.
+
+AgentCore was your **AI-routing equivalent of MPLS/SD-WAN**:
+
+- Agent identity/profile acted like a routing label.
+- AgentCore selected the permitted inference route.
+- LiteLLM forwarded the request to the chosen model/provider.
+- Health probes and fallback rules changed the route when a backend failed.
+
+So it was not literally an MPLS network, but you were applying the same idea to **AI inference traffic**.
+
+**MLP** means *multilayer perceptron*, a type of neural network, which is unrelated here.
+
+### User
+
+Multiprotocol Label Switching (MPLS) is a private, high-performance wide area networking (WAN) technology that directs data packets along predetermined paths using short "labels" rather than long network addresses. It speeds up data delivery and ensures high reliability for business-critical applications.
+
+### Assistant
+
+That is the networking concept you were borrowing from.
+
+For your AgentCore/OpenRouter system, the analogy was:
+
+| MPLS networking | AgentCore inference routing |
+|---|---|
+| Packet receives a label | Agent request receives an identity/profile |
+| Label selects a predefined path | Profile selects a model/provider route |
+| Router forwards without recalculating everything | AgentCore dispatches through LiteLLM using stored policy |
+| Traffic classes receive different priority | Different agents receive different models, limits, and fallbacks |
+| Failed links trigger alternate paths | Failed providers or models trigger fallback routes |
+
+So AgentCore was effectively an **MPLS-inspired control plane for AI inference traffic**.
+
+The label was not attached to a network packet. It was represented by things such as:
+
+- agent identity
+- inference profile
+- permitted providers
+- model priority
+- fallback chain
+- routing policy
+
+That explains the separate registry, probes, database schema, dispatch service, and MCP control plane. It was intended to provide **deterministic, policy-controlled routing**, rather than allowing every agent to call any model directly.
+
+### User
+
+so if you had to pick a name for it what would you call it one word or two
+
+### Assistant
+
+**Inference Fabric**
+
+It captures the whole system: agent identities, routing profiles, model selection, failover, LiteLLM dispatch, and the MCP control plane.
+
+A more infrastructure-style alternative would be **Inference MPLS**, but **Inference Fabric** is cleaner and does not imply literal MPLS networking.
+
+### User
+
+idk not going to lie that sounds gay
+
+### Assistant
+
+Fair. Call it **ModelSwitch**.
+
+It is direct and accurate: it switches agent requests between models, providers, and fallback routes.
+
+Other solid options:
+
+- **AgentSwitch**
+- **RoutePlane**
+- **Model Router**
+- **Dispatch Layer**
+
+**ModelSwitch** is the strongest.
+
+### User
+
+how about dispatch
+
+### Assistant
+
+**Dispatch** works well.
+
+It is short, accurate, and matches what the system actually does: receives agent requests, applies routing policy, and sends them to the appropriate model or provider.
+
+Best naming options:
+
+- **Dispatch** — clean project name
+- **Inference Dispatch** — clearer in documentation
+- **Agent Dispatch** — emphasizes agent clients
+- **Dispatch Control Plane** — describes the full subsystem
+
+I would name the folder and service **`dispatch`**, with the formal description **Inference Dispatch Control Plane**.
+
+### User
+
+if i call it two words then I have to put an undercore or a hypen
+
+### Assistant
+
+Then **Dispatch** is the better name.
+
+Use:
+
+- Folder: `dispatch`
+- Service: `dispatch`
+- Image: `dispatch:local`
+- Formal description: **Inference dispatch control plane**
+
+No underscore, no hyphen, and the name still fits the system.
+
+--- end of pkt-HD-10: 1 document(s) ---

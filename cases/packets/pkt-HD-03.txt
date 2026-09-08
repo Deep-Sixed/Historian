@@ -1,0 +1,191 @@
+PACKET pkt-HD-03   (3 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What is described about the local documentation workflow?
+
+--- document 0 of 2 (complete) ---
+---
+title: "Claude Code Documentation Workflow"
+conversation_id: 6a4a11f7-6854-83ea-b313-a6023057be58
+created: 2026-07-05
+updated: 2026-07-05
+models: ['gpt-5-5']
+turns: 2
+words: 499
+source: chatgpt-export
+---
+
+# Claude Code Documentation Workflow
+### User
+
+https://www.mintlify.com/blog/how-claude-code-docs-team-uses-mintlify
+
+### Assistant
+
+The URL you linked appears to be a Mintlify blog article about how the Claude Code documentation team uses Mintlify, but that specific page wasn't directly retrievable. However, Mintlify has published several closely related pieces that make their workflow fairly clear. citeturn0search1turn0search0
+
+### Key takeaways from Mintlify's Claude Code documentation workflow
+
+#### 1. Claude Code is treated as a documentation teammate, not an autocomplete tool
+Mintlify's technical writing team uses Claude Code to:
+
+- Read the codebase
+- Analyze recent Git changes
+- Search existing documentation
+- Draft new documentation
+- Review documentation for consistency
+- Update documentation when features change
+
+The workflow is built around repository-wide context rather than isolated prompts. citeturn0search1turn0search0
+
+#### 2. The critical artifact is `CLAUDE.md`
+Instead of repeatedly prompting Claude, they maintain project-specific instructions in a `CLAUDE.md` file that acts as persistent guidance.
+
+Typical contents include:
+
+- Writing standards
+- Documentation structure
+- Voice and style rules
+- Product terminology
+- Review checklists
+- Team workflows
+
+This effectively becomes an operational playbook for the agent. citeturn0search0turn0search1
+
+#### 3. Documentation is increasingly optimized for agents
+Mintlify's broader strategy is that docs are no longer just for humans.
+
+They automatically expose:
+
+- Markdown versions of pages
+- `llms.txt`
+- `llms-full.txt`
+- MCP servers
+- AI-readable content structures
+
+The goal is to make documentation directly consumable by Claude Code, Cursor, ChatGPT, and other coding agents. citeturn0search17turn0search6turn0search2
+
+#### 4. MCP is becoming a major distribution mechanism
+Mintlify generates hosted MCP servers from documentation.
+
+That means an agent can:
+
+- Search docs
+- Retrieve full pages
+- Navigate documentation structure
+- Use documentation as live context during task execution
+
+without scraping websites or relying on training data. citeturn0search6
+
+#### 5. Structured docs materially improve agent performance
+Mintlify reported experiments comparing:
+
+- Minimal docs
+- Human-written docs
+- Mintlify + MCP connected docs
+
+The documented results showed:
+
+- Higher answer precision
+- Better discoverability
+- Fewer tokens consumed
+- Faster task completion
+
+when agents had access to structured documentation and MCP. citeturn0search9
+
+---
+
+### Why this is interesting for your EVECOR / AgentSync work
+
+What Mintlify is doing is conceptually very close to several things you've been building:
+
+| Mintlify | EVECOR direction |
+|-----------|------------------|
+| `CLAUDE.md` | Skills, governance policies, TruthGuard constraints |
+| MCP docs server | AgentSync gateways and governed-read surfaces |
+| AI-readable docs | Wiki/Dreaming published surfaces |
+| Docs as agent interface | DataCore as machine-consumable memory |
+| Automated doc maintenance | Recon/Ledger/Recall generated artifacts |
+
+The strongest idea is not the documentation platform itself. It's the notion that **the primary consumer of documentation is increasingly another agent rather than a human**. Mintlify's entire architecture appears to be converging around that assumption. citeturn0search7turn0search6turn0search15
+
+For EVECOR, that suggests treating:
+
+- Wiki bundles
+- Dreaming manifests
+- Recall digests
+- Ledger claims
+- Governance rules
+
+as first-class agent interfaces, not just human-readable records. That's already consistent with the direction you've been taking with published Dreaming surfaces and AgentSync governance artifacts.
+
+--- document 1 of 2 (complete) ---
+---
+title: "Alibaba Bans Claude Code"
+conversation_id: 6a4c2b4a-6d80-83ea-b04f-5c9f4ac4d77d
+created: 2026-07-06
+updated: 2026-07-06
+models: ['gpt-5-5']
+turns: 2
+words: 408
+source: chatgpt-export
+---
+
+# Alibaba Bans Claude Code
+### User
+
+https://techcrunch.com/2026/07/04/alibaba-reportedly-bans-employees-from-using-claude-code/
+
+### Assistant
+
+This is a bigger story than just "Alibaba banned Claude Code."
+
+### What happened
+
+According to multiple reports, including the original TechCrunch report, Alibaba has instructed employees to stop using Claude Code beginning July 10 and classified it as high-risk software. Employees are reportedly being directed to use Alibaba's own coding assistant, Qoder, instead. citeturn0search0turn0news17turn0search11
+
+### Why it happened
+
+The immediate trigger appears to be controversy over code in Claude Code that could identify users associated with China or Chinese technology firms. Anthropic acknowledged that it had deployed an experiment intended to detect unauthorized access, account resale, and model distillation activity, and later removed it. citeturn0search0turn0news17turn0news19
+
+Alibaba reportedly viewed this as a security concern and classified the software as containing unacceptable risk. citeturn0news17turn0news16
+
+### The deeper context
+
+This sits inside a rapidly escalating conflict between entity["company","Alibaba","Chinese technology company"] and entity["company","Anthropic","AI company behind Claude"].
+
+Just days earlier, Anthropic publicly accused Alibaba-linked operators of conducting a large-scale model distillation campaign against Claude using thousands of accounts and millions of interactions. Alibaba has not publicly accepted those allegations. citeturn0news20turn0news21turn0news22
+
+At the same time, Anthropic has been tightening restrictions on Chinese access to Claude and closing technical workarounds that Chinese developers were using. citeturn0news19turn0search0
+
+So the ban is occurring against a backdrop of:
+
+- U.S. AI companies restricting Chinese access.
+- Chinese companies developing domestic alternatives.
+- Allegations of model distillation and IP extraction.
+- Growing concern over telemetry and user tracking inside AI development tools. citeturn0news19turn0news20turn0news17
+
+### Why developers should pay attention
+
+The most important takeaway is not Alibaba specifically.
+
+The important signal is that enterprises are starting to audit AI coding tools the same way they audit endpoint security software:
+
+- What data leaves the machine?
+- What telemetry is collected?
+- Can the vendor remotely alter behavior?
+- Are there hidden detection mechanisms?
+- What jurisdictions are affected?
+
+For organizations handling source code, intellectual property, government work, or regulated data, those questions are becoming procurement blockers. citeturn0news17turn0search0
+
+### Relevance to your environment
+
+Given how much of your stack revolves around governance, provenance, TruthGuard, AgentSync, secret custody, and auditability, this story reinforces something you've been pushing toward already: treat AI coding agents as privileged infrastructure rather than developer utilities.
+
+The debate is no longer "Is Claude Code useful?" The debate is becoming "What exactly is the agent doing, what is it sending, and who controls it?" Alibaba's reaction is one example of that shift. citeturn0news17turn0search0turn0news16
+
+--- end of pkt-HD-03: 2 document(s) ---

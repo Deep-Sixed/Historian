@@ -1,0 +1,30 @@
+PASS 2 — ADJUDICATION
+
+All 20 packets in the set you just read were judged adequate, so all 20 proceed. You have
+the documents above; refer back to them.
+
+For each packet, give one verdict:
+
+    <PACKET_ID>  RESOLVED  <your answer>
+      REASONING: <why the evidence supports it>
+
+    <PACKET_ID>  UNRESOLVED
+      REASONING: <why the evidence bears on the question but does not settle it>
+
+UNRESOLVED is a real answer, not a failure. Use it when the evidence genuinely does not
+settle the question — when sources disagree and nothing in them resolves the disagreement,
+or when the material discusses the topic without reaching a position on what was asked.
+
+Do not reach for a confident answer to be useful. Do not reach for uncertainty to seem
+careful. Either distortion damages the result more than a wrong answer would, because a
+wrong answer is visible and a distorted one is not.
+
+Some of these questions ask you to consider two documents together. Those are not
+automatically unresolved, and not automatically resolved. Judge what the two documents
+actually support when read side by side.
+
+Where you answer RESOLVED, keep the answer to what the documents state or clearly imply.
+If you find yourself supplying knowledge from outside the supplied documents, that is a
+sign the answer is not in the evidence.
+
+Please return a verdict for EVERY packet, not a partial list.

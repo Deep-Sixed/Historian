@@ -1,0 +1,105 @@
+PACKET pkt-HD-20   (20 of 20)
+
+Before judging: this packet should contain 1 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What Docker Compose problem was encountered, and what was done about it?
+
+--- document 0 of 1 (complete) ---
+---
+title: "Docker Compose Issue"
+conversation_id: 6a406020-5664-83ea-a8bf-556607cfa85c
+created: 2026-06-27
+updated: 2026-06-27
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 602
+source: chatgpt-export
+---
+
+# Docker Compose Issue
+### User
+
+Tracing what's still binding or reading that LiteLLM path.
+
+Composer 2.5 Fast
+
+Yes — something is still calling it. The active caller is the Docker agentcore compose stack, not a script reading that path on the host.
+
+What is calling it
+The litellm container (Docker Compose project agentcore) bind-mounts that path:
+
+/mnt/jarvis-data/projects/AgentCore/litellm/litellm.nexus.yaml
+  → /etc/litellm/litellm.nexus.yaml  (inside container)
+From docker inspect on the running (exited) container:
+
+Compose file: /mnt/jarvis-data/projects/AgentCore/docker/compose.yml (missing on disk now)
+Working dir: /mnt/jarvis-data/projects/AgentCore/docker
+Command: --config /etc/litellm/litellm.nexus.yaml --port 4000
+That definition comes from the archived compose:
+
+
+compose.yml
+Lines 22-28
+    command: ["--config", "/etc/litellm/litellm.nexus.yaml", "--port", "4000"]
+    volumes:
+      - ${AGENTCORE_ROOT:-/mnt/jarvis-data/projects/AgentCore}/litellm/litellm.nexus.yaml:/etc/litellm/litellm.nexus.yaml:ro
+      - ${AGENTCORE_ROOT:-/mnt/jarvis-data/projects/AgentCore}/litellm/litellm_plugins:/etc/litellm/litellm_plugins:ro
+      - ${AGENTCORE_ROOT:-/mnt/jarvis-data/projects/AgentCore}/litellm/litellm_plugins:/app/litellm_plugins:ro
+      - ${EVECOR_ROOT:-/mnt/jarvis-data/projects/EVECOR}/DataCore:/app/datacore:ro
+      - ${AGENTCORE_ROOT:-/mnt/jarvis-data/projects/AgentCore}/litellm/plugins:/etc/litellm/plugins:ro
+There is also a nexus shim that still points at the old canonical path:
+
+/mnt/jarvis-data/projects/nexus/docker/deploy/agentcore/compose.yml → includes AgentCore/docker/compose.yml
+Why it is a directory (litellm.nexus.yaml/)
+The real file was removed when projects/AgentCore was archived/deleted. On restart (~Jun 27 04:52), Docker tried to bind-mount a file that did not exist. Docker’s behavior is to create an empty directory at that path (as root). Mount then fails:
+
+Are you trying to mount a directory onto a file (or vice-versa)?
+
+So the trailing / folder is a symptom of the broken mount, not a config someone wrote.
+
+Current container state
+Container	Status	Uses that path?
+litellm
+Exited (127)
+Yes — config bind mount
+litellm-bridge
+Exited (127)
+No (uses nginx.conf stub instead)
+litellm-host-forward
+Restart loop
+Same compose project; restart: unless-stopped keeps retrying
+What is not calling it
+No systemd units matched litellm / agentcore
+EVECOR/RouterCore/LiteLLM/ uses litellm.routercore.yaml — not this path
+Remaining references are mostly docs/audits and the archive
+Fix options
+Stop the stale stack (stops retries and further stub creation):
+docker stop litellm litellm-bridge litellm-host-forward
+docker rm litellm litellm-bridge litellm-host-forward
+Restore the real file from archive, or repoint compose to RouterCore:
+Real config: third-party/Archive/AgentCore/litellm/litellm.nexus.yaml
+New target: EVECOR/RouterCore/LiteLLM/litellm.routercore.yaml
+Remove the bogus directory after stopping containers:
+sudo rm -rf /mnt/jarvis-data/projects/AgentCore/litellm/litellm.nexus.yaml
+If you want, I can repoint the compose/shim to RouterCore, or cleanly tear down the old agentcore LiteLLM stack and document the migration.
+
+Datacore Report: markdown handoff
+Datacore Route Visible: local-only
+Datacore Scope: litellm.nexus.yaml caller is Docker agentcore compose litellm container bind mount; path is root-owned directory from missing-file mount failure
+Datacore Key: litellm-nexus-yaml-caller-trace
+Node: JARVIS
+
+### Assistant
+
+```text
+Verdict: Composer’s trace is coherent.
+
+Root cause:
+Old Docker Compose state for project `agentcore` is still trying to run the archived AgentCore LiteLLM container with:
+
+... [38 more lines of text elided]
+```
+
+--- end of pkt-HD-20: 1 document(s) ---

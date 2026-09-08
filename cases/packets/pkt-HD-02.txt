@@ -1,0 +1,186 @@
+PACKET pkt-HD-02   (2 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What does the local setup do about secret storage?
+
+--- document 0 of 2 (complete) ---
+---
+title: "Claude Code Secrets"
+conversation_id: 6a0de152-6534-83ea-bd44-31e078c9a2b1
+created: 2026-05-20
+updated: 2026-05-20
+models: ['gpt-5-5-thinking']
+turns: 8
+words: 1625
+source: chatgpt-export
+---
+
+# Claude Code Secrets
+### User
+
+Both pass clean. Let me do a final diff to confirm exactly what changed:
+
+Bash Show diff of decommission doc changes
+IN
+git diff HEAD -- docs/dev_notes/secret_manager_decommission.md
+
+OUT
+diff --git a/docs/dev_notes/secret_manager_decommission.md b/docs/dev_notes/secret_manager_decommission.md
+index 15b942b..8f08eb0 100644
+--- a/docs/dev_notes/secret_manager_decommission.md
++++ b/docs/dev_notes/secret_manager_decommission.md
+@@ -1,6 +1,6 @@
+ # Secret manager decommission — Bitwarden and Passbolt
+ 
+-**Status:** Repo/runtime cleanup in progress (KeePassXC is final).  
++**Status:** Complete — KeePassXC is the only active secret manager.  
+ **Operator:** Charles approves any **host-level** uninstall or deletion of vault data.
+ 
+ ## Policy (final)
+@@ -24,8 +24,8 @@
+ 
+ | Path | Action |
+ | --- | --- |
+-| `scripts/load-secrets-from-passbolt.sh` | Delete (staged) |
+-| `tests/test_passbolt_secret_loader.py` | Delete (staged) |
++| `scripts/load-secrets-from-passbolt.sh` | Deleted |
++| `tests/test_passbolt_secret_loader.py` | Deleted |
+ 
+ ### Updated in working tree (no legacy terms in tracked content)
+ 
+@@ -58,8 +58,12 @@
+ 
+ ```bash
+ cd /home/jarvis/projects/nexus
+-# Working tree must not mention legacy managers (except policy test split-strings)
+-git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' -- ':!tests/test_secret_manager_policy_static.py' || echo OK
++# Working tree must not mention legacy managers outside the three allowlisted policy/history files
++git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' \
+... [48 more lines of bash elided]
+```bash
+git add apps/recruiter-ui/recruiter-ui.ts docs/dev_notes/secret_manager_decommission.md
+git commit -m "Close secret manager decommission docs"
+```text
+
+Keep it separate from Agent 8 CRM, Agent 10, deploy, `uv.lock`, or workspace cleanup.
+
+### User
+
+... [107 more lines of text elided]
+```text
+KeePassXC vault
+~/.config/Secrets/JARVIS-SECRETS.kdbx
+        ↓
+jarvis-secret
+        ↓
+scripts/load-runtime-secrets-from-keepass.sh
+        ↓
+shell environment variables
+        ↓
+Claude Code / Codex / Cursor / Docker Compose services
+```
+
+## Important distinction
+
+Claude Code does **not** directly fetch from KeePassXC.
+
+It receives secrets only because the launcher starts it inside an already-populated shell:
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+
+1. sources `scripts/load-runtime-secrets-from-keepass.sh`
+2. fetches values through `jarvis-secret`
+... [8 more lines of text elided]
+```bash
+scripts/start-stack.sh
+```text
+
+That script loads the KeePassXC-backed environment first, then starts Docker Compose. Compose passes selected environment variables into the containers.
+
+## Final boundary
+
+... [26 more lines of text elided]
+```
+KeePassXC vault (~/.config/Secrets/JARVIS-SECRETS.kdbx)
+  ↓
+jarvis-secret (CLI accessor)
+  ↓
+scripts/load-runtime-secrets-from-keepass.sh (exports env vars)
+  ↓
+Shell environment
+  ↓
+Claude Code / Codex / Cursor   ← via scripts/launch-ai-brain.sh
+Docker Compose services        ← via scripts/start-stack.sh
+```
+
+## Correct AI tool launch command
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+1. Sources `scripts/load-runtime-secrets-from-keepass.sh` → fetches via `jarvis-secret`, exports to shell
+2. Sources `scripts/export-agent9-datacore-env.sh` → Agent 9 Datacore URL
+3. Verifies `NEXUS_METADATA_EXCHANGE_DATABASE_URL` is present (refuses to launch without it unless `--allow-no-agent9`)
+... [43 more lines of text elided]
+```text
+scripts/load-runtime-secrets-from-keepass.sh
+```
+
+Make sure it is spelled **`keepass`**, not **`keeppass`**, anywhere it was added.
+
+--- document 1 of 2 (complete) ---
+---
+title: "Microsoft Claude Code Update"
+conversation_id: 6a18bc44-a4f4-83ea-9c15-61ca96b102b7
+created: 2026-05-28
+updated: 2026-05-28
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 355
+source: chatgpt-export
+---
+
+# Microsoft Claude Code Update
+### User
+
+[image_asset_pointer]
+
+### Assistant
+
+Yes. **That Verge article is real**, published May 14, 2026 by Tom Warren.
+
+Microsoft is reportedly canceling **most internal Claude Code licenses** within its Experiences + Devices organization, covering teams associated with Windows, Microsoft 365, Outlook, Teams, and Surface. Those developers are being directed toward **GitHub Copilot CLI** by the end of June. Claude Code had apparently become very popular internally, but Microsoft wants its engineers centered on the command-line agentic tool it controls through GitHub. citeturn137797view0
+
+The important distinction is that Microsoft is **not abandoning Claude models**. Claude models are expected to remain available through Copilot CLI, and Microsoft’s broader Anthropic/Foundry relationship is reportedly unaffected. Microsoft is removing the **Claude Code harness/interface**, not eliminating access to Anthropic models. citeturn137797view0
+
+## What this means for Hermes and your Nexus migration
+
+This is exactly the architectural distinction that matters:
+
+| Layer | Example | Should your system depend on it? |
+|---|---|---|
+| Model | Claude, GPT/Codex, Gemini, local Ollama models | Replaceable provider |
+| Coding harness | Claude Code, Codex CLI, Copilot CLI, Cursor | Useful executor, but replaceable |
+| Your operating system for the workflow | Hermes + migrated Nexus skills + memory/Datacore + browser/MCP tools | This should be the durable layer |
+
+Microsoft’s own move shows why building your workflow around one coding product is risky. Even when developers prefer one tool, licensing, cost, ownership, and strategic control can force a migration.
+
+For your setup, the stronger direction is:
+
+- **Hermes becomes the durable control plane** for job discovery, memory, skill execution, automation, browser use, and secret/tool access.
+- **Nexus skills migrate into Hermes** as reusable workflow capabilities.
+- **Claude Code, Codex, Copilot CLI, and local models become interchangeable workers**, not the system itself.
+- **Agent 9 Datacore or its Hermes replacement remains independent of the coding harness**, so memory is not trapped inside a single tool.
+
+This also strengthens the case for Hermes over relying only on Claude Code or Codex: Hermes can preserve your operational memory, schedules, skills, browser automation, KeePassXC integration, and shared context even when the preferred underlying coding tool changes.
+
+--- end of pkt-HD-02: 2 document(s) ---

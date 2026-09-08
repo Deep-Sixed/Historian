@@ -1,0 +1,143 @@
+PACKET pkt-HD-13   (13 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What is the position on local model runtimes?
+
+--- document 0 of 2 (complete) ---
+---
+title: "LMStudio vs llama.cpp"
+conversation_id: 6a0e8256-6b14-83ea-97c3-2dc215acaf88
+created: 2026-05-21
+updated: 2026-05-21
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 264
+source: chatgpt-export
+---
+
+# LMStudio vs llama.cpp
+### User
+
+LMStudio vs llama.cpp
+
+### Assistant
+
+## LM Studio vs llama.cpp
+
+| Area | LM Studio | llama.cpp |
+|---|---|---|
+| **Best for** | Easy local model use with GUI | Maximum control, scripting, servers, automation |
+| **Interface** | Desktop app + chat UI | CLI/server/library |
+| **Setup difficulty** | Low | Medium |
+| **Model handling** | Built-in model search/download | You manage GGUF files yourself |
+| **API server** | OpenAI-compatible local server | OpenAI-compatible server via `llama-server` |
+| **Automation** | Good, but app-centered | Better for Docker, scripts, Nexus, agents/workers |
+| **Performance tuning** | Simple presets | Deep tuning: threads, GPU layers, context, draft/speculative decode, MTP support depending build |
+| **Debuggability** | Easier visually | Better logs/flags/reproducibility |
+| **Headless server use** | Not ideal | Excellent |
+| **JARVIS/Nexus fit** | Good for testing models manually | Better for production-style local runtime |
+
+## For your setup
+
+Use **LM Studio** when you want to:
+
+- Quickly test a GGUF model.
+- Chat with a model locally.
+- Compare outputs without building scripts.
+- Run a local OpenAI-compatible endpoint with minimal friction.
+
+Use **llama.cpp** when you want to:
+
+- Wire models into **Nexus/JARVIS**.
+- Run models in Docker or systemd.
+- Control exact flags.
+- Use `llama-server`.
+- Test MTP/speculative decoding features.
+- Build repeatable local AI infrastructure.
+
+## My recommendation
+
+For **daily JARVIS/Nexus runtime**: **llama.cpp**.
+
+For **model shopping/testing**: **LM Studio**.
+
+Best workflow:
+
+```text
+LM Studio = audition models
+llama.cpp = deploy the winner
+```
+
+LM Studio is the garage. `llama.cpp` is the engine bay.
+
+--- document 1 of 2 (complete) ---
+---
+title: "Ollama Codex Qwen Setup"
+conversation_id: 6a14ac9a-e2c8-83ea-91ab-7bf2486ccda5
+created: 2026-05-25
+updated: 2026-05-25
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 159
+source: chatgpt-export
+---
+
+# Ollama Codex Qwen Setup
+### User
+
+ollama codex start command qwen
+
+### Assistant
+
+On **Ubuntu/Linux**, start Codex against your local Ollama **Qwen** model with:
+
+```bash
+codex --oss --local-provider ollama -m qwen2.5-coder
+```
+
+From inside a project directory:
+
+```bash
+cd /path/to/your/project
+codex --oss --local-provider ollama -m qwen2.5-coder
+```
+
+Check that Ollama has the model first:
+
+```bash
+ollama list
+```
+
+Pull it if needed:
+
+```bash
+ollama pull qwen2.5-coder
+```
+
+For a one-shot test against your Nexus repo:
+
+```bash
+codex exec --oss --local-provider ollama -m qwen2.5-coder \
+  -C /home/jarvis/projects/nexus \
+  "Reply with exactly: OK"
+```
+
+For your custom Linux GUI backend using Codex `app-server`:
+
+```bash
+codex app-server --listen stdio:// \
+  --oss --local-provider ollama -m qwen2.5-coder
+```
+
+Do **not** use:
+
+```bash
+ollama launch codex-app --model qwen2.5-coder
+```
+
+That attempts to launch the official Codex desktop app, which OpenAI currently documents as available for **macOS and Windows**, not Linux. Codex CLI itself supports Linux, and OpenAI’s CLI documentation includes local-model options such as `--oss`, `--local-provider`, and `--model`. citeturn851976search1turn851976search2turn647039search7turn647039search10
+
+--- end of pkt-HD-13: 2 document(s) ---

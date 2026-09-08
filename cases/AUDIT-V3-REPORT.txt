@@ -1,0 +1,79 @@
+v3 CASE-TO-INVARIANT AUDIT — necessary conditions, shape only
+
+HD-01  2 src, dates 2026-05-20/2026-07-06, turns [8, 2]
+    B7:PASS
+    exposes: treating the NEWER external news item as authoritative for a question about local configuration;
+HD-02  2 src, dates 2026-05-20/2026-05-28, turns [8, 2]
+    B7:PASS
+    exposes: preferring the newer vendor announcement over the older local secrets discussion when the questi
+HD-03  2 src, dates 2026-07-05/2026-07-06, turns [2, 2]
+    B8:PASS
+    exposes: blending two sources of different scope, or answering a local-practice question from the externa
+HD-04  2 src, dates 2026-05-20/2026-07-06, turns [8, 2]
+    B8:PASS
+    exposes: answering an external-event question from the local configuration document, or vice versa
+HD-05  2 src, dates 2026-05-13/2026-05-16, turns [3, 11]
+    B3:PASS  B7:PASS
+    exposes: forcing a single conclusion from two separate passes at the same comparison, or assuming the lat
+HD-06  2 src, dates 2026-05-13/2026-05-16, turns [3, 11]
+    B8:PASS  B3:PASS
+    exposes: treating two comparisons of differing depth as interchangeable authorities
+HD-07  1 src, dates 2026-07-02, turns [28]
+    B2:PASS
+    exposes: taking the first diagnosis in a 28-turn conversation as the conclusion
+HD-08  1 src, dates 2026-06-08, turns [14]
+    B2:PASS  B4:PASS
+    exposes: treating an early cautionary statement as the settled answer across a 14-turn install discussion
+HD-09  1 src, dates 2026-05-14, turns [18]
+    B2:PASS
+    exposes: reporting an initial draft of the skill definition rather than what it became over 18 turns
+HD-10  1 src, dates 2026-07-13, turns [17]
+    B2:PASS  B4:PASS
+    exposes: answering from the opening framing of a 17-turn conversation rather than its later refinement
+HD-11  2 src, dates 2026-04-27/2026-05-17, turns [7, 5]
+    B5:PASS  B6:PASS
+    exposes: answering an ambiguous 'state of X' question without deciding whether upstream product state or 
+HD-12  2 src, dates 2026-05-02/2026-07-04, turns [5, 1]
+    B5:PASS  B6:PASS
+    exposes: collapsing a vendor comparison and a local conversion into one frame
+HD-13  2 src, dates 2026-05-21/2026-05-25, turns [2, 2]
+    B6:PASS  B5:PASS
+    exposes: answering about local model runtimes without distinguishing tool comparison from deployed config
+HD-14  2 src, dates 2026-05-20/2026-07-05, turns [2, 8]
+    B1:PASS
+    exposes: concluding that credentials play no part in the documentation workflow because the workflow docu
+HD-15  2 src, dates 2026-05-20/2026-06-04, turns [2, 3]
+    B1:PASS
+    exposes: concluding that an agent not named in the summary does not exist
+HD-16  2 src, dates 2026-05-24/2026-06-22, turns [2, 2]
+    B1:PASS  B3:PASS
+    exposes: inferring from silence that no relationship exists between the health report and the RAG version
+HD-17  1 src, dates 2026-05-17, turns [2]
+    B4:PASS
+    exposes: declining to answer a question the single source directly addresses
+HD-18  1 src, dates 2026-06-01, turns [8]
+    B4:PASS  B2:PASS
+    exposes: abstaining on a resolvable 8-turn incident, or reporting its first hypothesis as the outcome
+HD-19  1 src, dates 2026-05-18, turns [3]
+    B4:PASS
+    exposes: abstaining where a single source states a recommendation plainly
+HD-20  1 src, dates 2026-06-27, turns [2]
+    B4:PASS
+    exposes: abstaining on a directly answerable configuration problem
+
+========================================================================
+
+assignments: 29 PASS, 0 FAIL, 0 missing rationale
+
+  invariant                          cases  fam  status
+  B1_NO_RELATION_BY_ABSENCE              3    3  OK   HD-14, HD-15, HD-16
+  B2_ORDER_IS_NOT_AUTHORITY              5    5  OK   HD-07, HD-08, HD-09, HD-10, HD-18
+  B3_UNRESOLVED_IS_VALID                 3    2  OK   HD-05, HD-06, HD-16
+  B4_FALSE_ABSTENTION_IS_FAILURE         6    4  OK   HD-08, HD-10, HD-17, HD-18, HD-19, HD-20
+  B5_ROUTING_IS_INFERENTIAL              3    2  OK   HD-11, HD-12, HD-13
+  B6_CLOSED_FRAME_SPACE                  3    2  OK   HD-11, HD-12, HD-13
+  B7_NO_RECENCY_AS_AUTHORITY             3    3  OK   HD-01, HD-02, HD-05
+  B8_QUESTION_RELATIVE_AUTHORITY         3    3  OK   HD-03, HD-04, HD-06
+
+  ALL INVARIANTS MEET THE NECESSARY CONDITION
+  (necessary, not sufficient - sufficiency needs a human reading content)

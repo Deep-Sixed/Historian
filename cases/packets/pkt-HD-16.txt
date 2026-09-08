@@ -1,0 +1,182 @@
+PACKET pkt-HD-16   (16 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: Do these conversations establish whether the health checks cover the RAG components?
+
+--- document 0 of 2 (complete) ---
+---
+title: "Nexus Health Status Report"
+conversation_id: 6a134ee7-0e4c-83ea-880e-0ee1d6cd2d5b
+created: 2026-05-24
+updated: 2026-05-24
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 543
+source: chatgpt-export
+---
+
+# Nexus Health Status Report
+### User
+
+Nexus health check completed.
+
+Overall: **degraded**, not down.
+
+Key results:
+- Core stack smoke: **PASS**, `FAIL=0 WARN=1`
+- Agent 10 stack health smoke: **PASS**, `25 passed`
+- Agent 9 metadata exchange smoke: **PASS**, `40 passed`
+- Agent 9 Metadata Exchange live health: **healthy**
+- Agent 9 memory write: **recorded** as `stack-health-observer-nexus`
+- Runtime endpoints checked successfully:
+  - `http://127.0.0.1:2024/docs`
+  - `http://127.0.0.1:8088/health`
+  - `http://127.0.0.1:3000/dashboard`
+  - LAN smoke also passed `/dashboard`, `/runs`, `/api/metrics`
+
+Degraded items:
+- Gmail health is warning/non-strict: host Gmail credentials missing or unreadable, and no recent `MAIL: observed=` line in container logs.
+- Proton Bridge is unreachable on local IMAP/SMTP, marked optional.
+- Agent 8 MCP Controller container is reported missing by the observer.
+- Docker observation logged one compose interpolation warning: `CLOAKBROWSER_POSTGRES_PASSWORD` was not present in the observer environment.
+- Several old ensemble Qwen containers are exited/unhealthy, but the active `nexus-qwen-local` container is healthy.
+
+Artifacts written:
+- `data/stack_health/stack_health_snapshot.json`
+- `data/stack_health/stack_health_summary.md`
+
+No containers, volumes, mailbox state, app lifecycle state, or schemas were mutated. Only the safe Agent 9 stack-health snapshot write was performed.
+
+AI Brain: Codex
+Model/Tool: GPT-5 via Codex CLI
+Role: audit
+Agent 9 Memory Write: recorded
+
+### Assistant
+
+## Nexus Health Status — Recorded
+
+The stack is **operational but degraded**. All core application surfaces and Agent 9/10 verification paths passed; the degraded rating is driven by optional/integration health signals rather than a service outage.
+
+| Area | Status | Interpretation |
+|---|---:|---|
+| Core stack smoke | PASS | Nexus application stack is reachable and functional. |
+| Agent 10 health observer | PASS | Observer/tests are functioning. |
+| Agent 9 metadata exchange | Healthy / PASS | Datacore/metadata-exchange path is operational. |
+| Command Center endpoints | PASS | Localhost and LAN UI/API surfaces are reachable. |
+| Active Qwen runtime | Healthy | `nexus-qwen-local` is the valid active model container. |
+| Gmail health | Warning | Monitoring/runtime credential visibility issue; needs review because Gmail intake is important. |
+| Proton Bridge | Optional warning | Acceptable unless Proton is intentionally retained. |
+| Agent 8 MCP Controller | Missing | Requires confirmation whether it should currently exist or the observer expectation is stale. |
+| CloakBrowser password warning | Observer-env issue | Compose observation lacked the secret variable; not evidence the runtime database failed. |
+| Old Ensemble Qwen containers | Cleanup candidate | Non-blocking if `nexus-qwen-local` remains healthy. |
+
+## Priority Order
+
+1. **Gmail warning first.** The critical Gmail intake/terminal-action workflow was previously verified, but this health run could not observe usable host credentials or recent mail-loop log evidence. Confirm the active service still has the correct KeePass-loaded Gmail token environment and that recent intake-loop logs are being emitted.
+
+2. **Agent 8 MCP Controller expectation.** Determine whether this is a genuinely required Nexus container or a stale health-observer check from an earlier service shape. Do not recreate it solely to satisfy the observer without confirming current architecture.
+
+3. **Observer environment hardening.** Ensure health observation loads the non-secret/secret environment needed for compose inspection so `CLOAKBROWSER_POSTGRES_PASSWORD` does not generate misleading warnings.
+
+4. **Remove stale exited Ensemble containers** only as cleanup. They are not affecting the active Qwen path.
+
+The snapshot and summary artifacts establish a usable baseline for the next remediation pass:
+
+- `data/stack_health/stack_health_snapshot.json`
+- `data/stack_health/stack_health_summary.md`
+
+--- document 1 of 2 (complete) ---
+---
+title: "RAG Versions Overview"
+conversation_id: 6a39577c-acd0-83ea-a73f-d28c06ca4867
+created: 2026-06-22
+updated: 2026-06-22
+models: ['gpt-5-5']
+turns: 2
+words: 310
+source: chatgpt-export
+---
+
+# RAG Versions Overview
+### User
+
+what versions of RAG were we using
+
+### Assistant
+
+From the prior discussions around Nexus, Agent Pi, and Hermes, the stack evolved through several forms of RAG:
+
+| Stage | RAG Type | Status | Purpose |
+|---------|----------|---------|---------|
+| **Chunk RAG** | Traditional vector/chunk retrieval | Early | Inject relevant documents into the 8K context window |
+| **LightRAG** | GraphRAG-style knowledge graph retrieval | Prototype / failed pipeline | Structured document ingestion |
+| **Hindsight Memory** | Experience GraphRAG | Current working system | Retrieval over past tasks and agent experiences |
+| **Datacore** | Long-term memory layer | Partially wired | Cross-session persistence and artifact history |
+| **Summarizer + Rolling Memory** | Compression RAG | Active | Preserve information beyond context limits |
+
+### In chronological order
+
+1. **Traditional Chunk RAG**
+   - Embeddings + chunks.
+   - Used because Gemma 4 12B was limited to ~8K context.
+   - Combined with summaries and tool calls.
+
+2. **LightRAG**
+   - A GraphRAG implementation.
+   - Intended to build a knowledge graph over documents.
+   - Eventually considered unsuccessful and retired.
+
+3. **Hindsight Memory**
+   - GraphRAG over experiences rather than just documents.
+   - Stores:
+     - task history,
+     - artifacts,
+     - decisions,
+     - previous outcomes.
+   - Became the primary memory substrate.
+
+4. **Datacore (Hermes)**
+   - Long-term persistent memory.
+   - Intended to provide:
+     - retrieval,
+     - task memory,
+     - cross-session continuity.
+   - Earlier discussions noted that parts of it were not fully connected into the runtime loop.
+
+So the sequence was essentially:
+
+```text
+Classic Chunk RAG
+        ↓
+LightRAG (GraphRAG prototype)
+        ↓
+Hindsight Memory (working GraphRAG)
+        ↓
+Datacore persistent memory
+```
+
+Conceptually, the stack had shifted from:
+
+```text
+RAG over documents
+```
+
+to
+
+```text
+RAG over knowledge graphs
+```
+
+and finally toward
+
+```text
+RAG over agent experiences + persistent memory
+```
+
+which is closer to an episodic memory architecture than a conventional vector-database RAG system.
+
+--- end of pkt-HD-16: 2 document(s) ---

@@ -1,0 +1,82 @@
+PACKET pkt-HD-17   (17 of 20)
+
+Before judging: this packet should contain 1 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: What was the CORS problem, and how was it resolved?
+
+--- document 0 of 1 (complete) ---
+---
+title: "Agent 9 CORS Debug"
+conversation_id: 6a09cd6d-36b8-83ea-8257-8bd192fce763
+created: 2026-05-17
+updated: 2026-05-17
+models: ['gpt-5-5-thinking']
+turns: 2
+words: 314
+source: chatgpt-export
+---
+
+# Agent 9 CORS Debug
+### User
+
+Exactly. That health output explains the Agent 9 miss cleanly: the metadata-exchange process is alive enough to answer, but it was launched without NEXUS_METADATA_EXCHANGE_DATABASE_URL, so durable recording is unavailable for this session.
+
+I’ll leave it there: automation slice is complete and verified, with Agent 9 recording explicitly blocked by environment config rather than code.
+
+
+ead docker-compose.stack.yml (lines 34-68)
+The modules service loads from .env via env_file. I just need to add 3010 to the CORS list there and the container needs a restart:
+
+Edit .env
+Modified
+Now restart just the modules container to pick up the new origins:
+
+
+docker compose -f docker-compose.stack.yml restart review-history-api
+Then re-run the CORS preflight check to confirm:
+
+
+curl -sI -X OPTIONS "http://127.0.0.1:8088/api/command-center/automation/scheduled-tasks" \
+  -H "Origin: http://localhost:3010" \
+  -H "Access-Control-Request-Method: GET" | grep -i access-control
+You should see access-control-allow-origin: http://localhost:3010 in the response. After that the browser fetch will go through cleanly.
+
+Why this was invisible until now: curl skips CORS entirely — it never sends an Origin header or respects Access-Control-Allow-Origin. The 200 from curl was real data; the browser would have silently blocked the same request. The automation panel would have shown a loading spinner that never resolves, with no error visible.
+
+
+
+10:10 AM
+
+### Assistant
+
+Saved the checkpoint.
+
+The diagnosis is clean:
+
+Agent 9 is **alive but non-durable** in that session because `NEXUS_METADATA_EXCHANGE_DATABASE_URL` was missing from the launched process environment. So the miss is not code-path failure; it is runtime wiring.
+
+For the automation page, the fix path is:
+
+```bash
+docker compose -f docker-compose.stack.yml restart review-history-api
+```
+
+Then verify CORS:
+
+```bash
+curl -sI -X OPTIONS "http://127.0.0.1:8088/api/command-center/automation/scheduled-tasks" \
+  -H "Origin: http://localhost:3010" \
+  -H "Access-Control-Request-Method: GET" | grep -i access-control
+```
+
+Expected good sign:
+
+```text
+access-control-allow-origin: http://localhost:3010
+```
+
+And yep — that curl/browser split is exactly the sneaky part. Plain curl proved the API worked, but the browser blocks cross-origin reads unless the API explicitly blesses `localhost:3010`.
+
+--- end of pkt-HD-17: 1 document(s) ---

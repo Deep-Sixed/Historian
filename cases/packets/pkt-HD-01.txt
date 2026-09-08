@@ -1,0 +1,206 @@
+PACKET pkt-HD-01   (1 of 20)
+
+Before judging: this packet should contain 2 document(s). If you see fewer, or any
+document appears cut off, say TRUNCATED and stop — do not judge a packet you did not
+fully receive.
+
+QUESTION: How are credentials handled in this Claude Code setup?
+
+--- document 0 of 2 (complete) ---
+---
+title: "Claude Code Secrets"
+conversation_id: 6a0de152-6534-83ea-bd44-31e078c9a2b1
+created: 2026-05-20
+updated: 2026-05-20
+models: ['gpt-5-5-thinking']
+turns: 8
+words: 1625
+source: chatgpt-export
+---
+
+# Claude Code Secrets
+### User
+
+Both pass clean. Let me do a final diff to confirm exactly what changed:
+
+Bash Show diff of decommission doc changes
+IN
+git diff HEAD -- docs/dev_notes/secret_manager_decommission.md
+
+OUT
+diff --git a/docs/dev_notes/secret_manager_decommission.md b/docs/dev_notes/secret_manager_decommission.md
+index 15b942b..8f08eb0 100644
+--- a/docs/dev_notes/secret_manager_decommission.md
++++ b/docs/dev_notes/secret_manager_decommission.md
+@@ -1,6 +1,6 @@
+ # Secret manager decommission — Bitwarden and Passbolt
+ 
+-**Status:** Repo/runtime cleanup in progress (KeePassXC is final).  
++**Status:** Complete — KeePassXC is the only active secret manager.  
+ **Operator:** Charles approves any **host-level** uninstall or deletion of vault data.
+ 
+ ## Policy (final)
+@@ -24,8 +24,8 @@
+ 
+ | Path | Action |
+ | --- | --- |
+-| `scripts/load-secrets-from-passbolt.sh` | Delete (staged) |
+-| `tests/test_passbolt_secret_loader.py` | Delete (staged) |
++| `scripts/load-secrets-from-passbolt.sh` | Deleted |
++| `tests/test_passbolt_secret_loader.py` | Deleted |
+ 
+ ### Updated in working tree (no legacy terms in tracked content)
+ 
+@@ -58,8 +58,12 @@
+ 
+ ```bash
+ cd /home/jarvis/projects/nexus
+-# Working tree must not mention legacy managers (except policy test split-strings)
+-git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' -- ':!tests/test_secret_manager_policy_static.py' || echo OK
++# Working tree must not mention legacy managers outside the three allowlisted policy/history files
++git grep -i -E 'passbolt|bitwarden|BW_SESSION|load-secrets-from-passbolt|export-bitwarden' \
+... [48 more lines of bash elided]
+```bash
+git add apps/recruiter-ui/recruiter-ui.ts docs/dev_notes/secret_manager_decommission.md
+git commit -m "Close secret manager decommission docs"
+```text
+
+Keep it separate from Agent 8 CRM, Agent 10, deploy, `uv.lock`, or workspace cleanup.
+
+### User
+
+... [107 more lines of text elided]
+```text
+KeePassXC vault
+~/.config/Secrets/JARVIS-SECRETS.kdbx
+        ↓
+jarvis-secret
+        ↓
+scripts/load-runtime-secrets-from-keepass.sh
+        ↓
+shell environment variables
+        ↓
+Claude Code / Codex / Cursor / Docker Compose services
+```
+
+## Important distinction
+
+Claude Code does **not** directly fetch from KeePassXC.
+
+It receives secrets only because the launcher starts it inside an already-populated shell:
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+
+1. sources `scripts/load-runtime-secrets-from-keepass.sh`
+2. fetches values through `jarvis-secret`
+... [8 more lines of text elided]
+```bash
+scripts/start-stack.sh
+```text
+
+That script loads the KeePassXC-backed environment first, then starts Docker Compose. Compose passes selected environment variables into the containers.
+
+## Final boundary
+
+... [26 more lines of text elided]
+```
+KeePassXC vault (~/.config/Secrets/JARVIS-SECRETS.kdbx)
+  ↓
+jarvis-secret (CLI accessor)
+  ↓
+scripts/load-runtime-secrets-from-keepass.sh (exports env vars)
+  ↓
+Shell environment
+  ↓
+Claude Code / Codex / Cursor   ← via scripts/launch-ai-brain.sh
+Docker Compose services        ← via scripts/start-stack.sh
+```
+
+## Correct AI tool launch command
+
+```bash
+scripts/launch-ai-brain.sh claude
+```text
+
+That script:
+1. Sources `scripts/load-runtime-secrets-from-keepass.sh` → fetches via `jarvis-secret`, exports to shell
+2. Sources `scripts/export-agent9-datacore-env.sh` → Agent 9 Datacore URL
+3. Verifies `NEXUS_METADATA_EXCHANGE_DATABASE_URL` is present (refuses to launch without it unless `--allow-no-agent9`)
+... [43 more lines of text elided]
+```text
+scripts/load-runtime-secrets-from-keepass.sh
+```
+
+Make sure it is spelled **`keepass`**, not **`keeppass`**, anywhere it was added.
+
+--- document 1 of 2 (complete) ---
+---
+title: "Alibaba Bans Claude Code"
+conversation_id: 6a4c2b4a-6d80-83ea-b04f-5c9f4ac4d77d
+created: 2026-07-06
+updated: 2026-07-06
+models: ['gpt-5-5']
+turns: 2
+words: 408
+source: chatgpt-export
+---
+
+# Alibaba Bans Claude Code
+### User
+
+https://techcrunch.com/2026/07/04/alibaba-reportedly-bans-employees-from-using-claude-code/
+
+### Assistant
+
+This is a bigger story than just "Alibaba banned Claude Code."
+
+### What happened
+
+According to multiple reports, including the original TechCrunch report, Alibaba has instructed employees to stop using Claude Code beginning July 10 and classified it as high-risk software. Employees are reportedly being directed to use Alibaba's own coding assistant, Qoder, instead. citeturn0search0turn0news17turn0search11
+
+### Why it happened
+
+The immediate trigger appears to be controversy over code in Claude Code that could identify users associated with China or Chinese technology firms. Anthropic acknowledged that it had deployed an experiment intended to detect unauthorized access, account resale, and model distillation activity, and later removed it. citeturn0search0turn0news17turn0news19
+
+Alibaba reportedly viewed this as a security concern and classified the software as containing unacceptable risk. citeturn0news17turn0news16
+
+### The deeper context
+
+This sits inside a rapidly escalating conflict between entity["company","Alibaba","Chinese technology company"] and entity["company","Anthropic","AI company behind Claude"].
+
+Just days earlier, Anthropic publicly accused Alibaba-linked operators of conducting a large-scale model distillation campaign against Claude using thousands of accounts and millions of interactions. Alibaba has not publicly accepted those allegations. citeturn0news20turn0news21turn0news22
+
+At the same time, Anthropic has been tightening restrictions on Chinese access to Claude and closing technical workarounds that Chinese developers were using. citeturn0news19turn0search0
+
+So the ban is occurring against a backdrop of:
+
+- U.S. AI companies restricting Chinese access.
+- Chinese companies developing domestic alternatives.
+- Allegations of model distillation and IP extraction.
+- Growing concern over telemetry and user tracking inside AI development tools. citeturn0news19turn0news20turn0news17
+
+### Why developers should pay attention
+
+The most important takeaway is not Alibaba specifically.
+
+The important signal is that enterprises are starting to audit AI coding tools the same way they audit endpoint security software:
+
+- What data leaves the machine?
+- What telemetry is collected?
+- Can the vendor remotely alter behavior?
+- Are there hidden detection mechanisms?
+- What jurisdictions are affected?
+
+For organizations handling source code, intellectual property, government work, or regulated data, those questions are becoming procurement blockers. citeturn0news17turn0search0
+
+### Relevance to your environment
+
+Given how much of your stack revolves around governance, provenance, TruthGuard, AgentSync, secret custody, and auditability, this story reinforces something you've been pushing toward already: treat AI coding agents as privileged infrastructure rather than developer utilities.
+
+The debate is no longer "Is Claude Code useful?" The debate is becoming "What exactly is the agent doing, what is it sending, and who controls it?" Alibaba's reaction is one example of that shift. citeturn0news17turn0search0turn0news16
+
+--- end of pkt-HD-01: 2 document(s) ---

@@ -1,0 +1,2757 @@
+PASS 1 RE-CHECK — TWO PACKETS, FULL SOURCE DOCUMENTS
+
+You previously judged both of these PACKET_INSUFFICIENT. The excerpts you were shown were
+short mechanically-selected windows. You are now shown the COMPLETE source documents for
+the same two questions.
+
+Judge each again, independently of your earlier verdict:
+
+    <PACKET_ID>  ADEQUATE
+    <PACKET_ID>  PACKET_INSUFFICIENT  <what is missing or why the material is inadequate>
+
+It is entirely acceptable for a verdict to change now, and equally acceptable for it not
+to. Do not feel obliged to be consistent with what you said before, and do not feel obliged
+to change. Judge only what is in front of you now.
+
+Still do not answer the questions themselves, and still do not state what you think the
+answer is in an insufficiency note.
+
+================================================================================
+
+PACKET pkt-HB-13
+QUESTION: What was decided about the TB-31 setup?
+
+--- full document 0 ---
+---
+title: "TB-31 Setup and Migration"
+conversation_id: 6a00467a-4d08-83ea-b701-88ef6f50d3ca
+created: 2026-05-10
+updated: 2026-05-10
+models: ['gpt-5-5-thinking']
+turns: 34
+words: 8759
+source: chatgpt-export
+---
+
+# TB-31 Setup and Migration
+### User
+
+provide me instrctions for setting up TB 31 and whatever was left in migrating the project
+
+### Assistant
+
+Absolutely — here’s the clean “hand this to Codex/Cursor/Claude Code” version for **TB-31** plus the remaining migration cleanup.
+
+## TB-31 Setup Goal
+
+**TB-31 should finish the Mission Control migration for Talent-Beacon.**
+
+Right now Talent-Beacon has two worlds partially overlapping:
+
+1. The newer **Talent-Beacon LangGraph / recruiter-ui** direction.
+2. The older/imported **Mission Control dashboard patterns** from Job Apps.
+
+TB-31 should make Talent-Beacon’s UI use the real existing Mission Control-style dashboard/workbook structure instead of the temporary/simple dashboard that was scaffolded during the migration.
+
+The key issue you already spotted:
+
+> The dashboard is running, but it did not pull over the already-built Mission Control dashboard we had.
+
+So TB-31 is not “make a new dashboard from scratch.”  
+It is: **complete the migration by wiring the real dashboard/workbook/operator UI into Talent-Beacon.**
+
+---
+
+# TB-31 Cursor/Codex Task Prompt
+
+You can paste this whole thing into Codex or Cursor.
+
+```text
+Task: TB-31 — Complete Talent-Beacon Mission Control migration
+
+Repo:
+cd /home/atlas/Atlas/talent-beacon
+
+... [142 more lines of text elided]
+```
+
+---
+
+# What TB-31 Should Produce
+
+At the end of TB-31, you want Talent-Beacon to feel like an actual **Command Center**, not a starter Next.js dashboard.
+
+The pages should answer:
+
+**Dashboard:**  
+“What is Talent-Beacon doing right now?”
+
+**Runs:**  
+“What did the last visibility/correspondence scan do?”
+
+**Review Packets:**  
+“What needs Charles to review?”
+
+**Recruiters/CRM:**  
+“Who is contacting me, what company are they tied to, and are they useful/spammy/duplicate?”
+
+**Diagnostics:**  
+“Is Gmail/LangGraph/API/frontend healthy?”
+
+---
+
+# Remaining Migration Work After TB-31
+
+After TB-31, the rest of the migration should probably be this order:
+
+## TB-32 — Normalize Talent-Beacon terminology
+
+Clean up names left over from Job Apps.
+
+Replace words like:
+
+```text
+application
+submitted
+job apps
+agent 8
+HITL submit
+form fill
+tracker logger
+pipeline logger
+```
+
+With Talent-Beacon language:
+
+```text
+opportunity
+visibility event
+review packet
+correspondence
+mission control
+workflow run
+observation
+operator review
+```
+
+This matters because the project changed. You are no longer building “find jobs and apply.” You are building **professional visibility and recruiter intelligence.**
+
+---
+
+## TB-33 — Recruiter Review Packet workflow
+
+This should formalize the human-review loop.
+
+A review packet should include:
+
+```text
+source email
+sender/recruiter identity
+company
+role/opportunity mentioned
+location
+remote/hybrid/on-site signal
+compensation signal
+risk flags
+fit summary
+suggested response
+sensitive-info warning
+recommended human action
+```
+
+Hard rule:
+
+```text
+No automatic recruiter response until human approval exists.
+```
+
+---
+
+## TB-34 — Recruiter CRM observation ingestion
+
+This is close to the Phase 5E idea from Job Apps, but Talent-Beacon-native.
+
+The system should append observations like:
+
+```text
+recruiter_outreach
+possible_opportunity
+spammy_recruiter
+duplicate_contact_candidate
+bad_location
+wrong_role_family
+good_lead
+follow_up_needed
+```
+
+Hard rules:
+
+```text
+Do not auto-merge recruiter contacts.
+Do not auto-create trusted recruiters.
+Do not mutate company hierarchy directly.
+Write append-only observations first.
+Human confirms later.
+```
+
+---
+
+## TB-35 — CRM hierarchy and dedupe UI
+
+This is where your recruiter/company model starts getting serious.
+
+Model:
+
+```text
+RecruiterContact
+  belongs to RecruitingCompany
+  may belong to RecruitingOffice / Branch
+  has many Interactions
+  has many Observations
+```
+
+Support messy reality:
+
+```text
+Robert Half
+Robert Half Technology
+Robert Half - Philadelphia
+Robert Half / Princeton
+```
+
+Do not flatten these too early. Let the CRM preserve branch-level behavior.
+
+---
+
+## TB-36 — Secure Mission Control access
+
+You already called this out: there is too much private data in the command center.
+
+Preferred direction:
+
+```text
+Token-based access, not password-based access.
+```
+
+The local/LAN dashboard should require a token, especially when accessed from:
+
+```text
+http://192.168.93.128
+```
+
+Suggested rules:
+
+```text
+VITE_MISSION_CONTROL_TOKEN or TALENT_BEACON_UI_TOKEN required
+Frontend sends token with API requests
+Backend rejects missing/invalid token
+UI shows 🔒 SECURED when token is active
+Never commit real token
+.env.example documents placeholder only
+```
+
+---
+
+## TB-37 — LangGraph workflow hardening
+
+Once the UI is stable, wire LangGraph more cleanly.
+
+You want the workflow to behave more like:
+
+```text
+Email Intake
+  ↓
+Recruiter/Opportunity Extractor
+  ↓
+Safety Firewall
+... [10 more lines of text elided]
+```
+
+The important distinction:
+
+The deterministic pieces are **nodes/workers/tasks**.
+
+The true LLM correspondence piece can be called an **agent** because it reasons and drafts.
+
+---
+
+# Practical Setup Commands
+
+From the repo:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon
+```
+
+Install dependencies if needed:
+
+```bash
+npm install
+```
+
+For the recruiter UI:
+
+```bash
+cd apps/recruiter-ui
+npm install
+npm run build
+```
+
+Run dev server:
+
+```bash
+npm run dev -- --host 0.0.0.0
+```
+
+Then open from LAN:
+
+```text
+http://192.168.93.128:3000/dashboard
+http://192.168.93.128:3000/runs
+```
+
+If the port is different, use whatever Next.js prints in the terminal.
+
+---
+
+# Environment Check
+
+Make sure this exists:
+
+```bash
+apps/recruiter-ui/.env.local
+```
+
+It should have values similar to:
+
+```env
+NEXT_PUBLIC_LANGGRAPH_API_URL=http://localhost:2024
+NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID=recruiter_correspondence
+LANGGRAPH_API_URL=http://localhost:2024
+```
+
+If you add token protection later:
+
+```env
+TALENT_BEACON_UI_TOKEN=replace-with-local-token
+NEXT_PUBLIC_MISSION_CONTROL_SECURED=true
+```
+
+Do **not** commit `.env.local`.
+
+---
+
+# Current Migration Status in Plain English
+
+You already got past the scary part.
+
+The Gmail → dashboard loop works.  
+The API endpoints work.  
+The LAN hydration issue was fixed.  
+The project is already shifted toward LangGraph.
+
+What is left is mostly **product architecture cleanup**:
+
+```text
+Make the UI match the new mission.
+Remove leftover Job Apps concepts.
+Finish the Mission Control migration.
+Make review packets first-class.
+Add token security.
+Then harden the LangGraph workflow.
+```
+
+TB-31 is the bridge from “it technically runs” to “this is actually Talent-Beacon Mission Control.”
+
+### User
+
+how come you provided 31 through 36 all in one go tonight but yesterday you wouldnt give me one or one broken up into muptile ones at the same time
+
+### Assistant
+
+Because tonight I treated it as a **roadmap + one executable task**, not six separate build prompts.
+
+Yesterday I was being too cautious and over-splitting because the project was still in flux: Job Apps vs Talent-Beacon, Agent 6/7 vs Mission Control, old dashboard vs new LangGraph UI, security, recruiter CRM, etc. I didn’t want to hand you a giant prompt that caused the coding tool to patch half the repo in one pass and mix unrelated concerns.
+
+Tonight, your ask was different:
+
+> “provide me instructions for setting up TB 31 and whatever was left in migrating the project”
+
+So I gave you:
+
+**TB-31** as the actual next implementation task.
+
+Then **TB-32 through TB-37** as the migration backlog / sequence, not as “do all of this now.”
+
+That’s why TB-31 had the big paste-ready prompt, and the rest were framed as “remaining migration work after TB-31.”
+
+The better way I should have labeled it is:
+
+```text
+Do now:
+TB-31
+
+Do later:
+TB-32 through TB-37 backlog
+```
+
+Yesterday, when you wanted an implementation prompt, I should have given you **one complete end-to-end task prompt** instead of hesitating or breaking it weirdly. Especially since you’ve told me your coding tools can handle full tasks and you don’t want artificial A/B/C sub-phases.
+
+So yeah — you caught a real inconsistency.
+
+Going forward for Talent-Beacon, I’ll format it like this:
+
+```text
+Current task:
+TB-31 — one complete implementation prompt
+
+Backlog:
+TB-32
+TB-33
+TB-34
+...
+```
+
+Not “six things to code at once,” and not “tiny chopped-up tasks” unless you ask for that.
+
+### User
+
+Got it. I’ll treat this as the TB-31 implementation brief and work in /home/atlas/Atlas/talent-beacon. First I’m going to inspect the current recruiter UI, API routes, and any migrated Mission Control pieces so the change is a migration, not a fresh dashboard invention.
+
+
+Explored 2 searches, 1 list, ran 1 command
+The UI is very small right now: dashboard, runs, runs/[id], and review-packet, plus a catch-all API proxy. I don’t see a rich Mission Control component set already copied into this repo, so I’m going to compare against the old Job Apps Mission Control patterns and then migrate the useful layout/data patterns into Talent-Beacon vocabulary.
+
+
+Explored 18 files, 1 search, 3 lists
+I’ve got enough shape now. The existing Talent-Beacon UI has working endpoints but a starter-style page structure; the old Mission Control had the useful parts: persistent operator nav, status strip, dense summary panels, workbook/data views, and recruiter queue surfaces. I’m going to migrate those patterns into Next/Talent-Beacon terms using the current API surface rather than copying the old Agent 8 app wholesale.
+
+
+Explored 4 files
+I’m going to add the migrated command-center shell and new workbook/CRM/diagnostics/review-queue surfaces now. This will leave the existing API calls and run detail actions intact, but wrap them in a Mission Control navigation structure and remove the placeholder dashboard feel.
+
+
+Created 13 files, edited 6 files
+The main Mission Control surfaces are now in place: persistent operator nav, dashboard panels, review packet queue, recruiter/CRM rollup, workbook table, diagnostics, and assistant as a secondary workspace page. I’m going to build the recruiter UI now and fix any TypeScript/Next issues that shake out.
+
+Ran npm run build
+npm run build passed, including TypeScript. I’m running the UI lint and the Python workflow tests next so the acceptance check isn’t just “it compiles.”
+
+
+Edited 3 files, ran 4 commands
+Build and lint are clean now, and the Python workflow tests still pass. I’m going to do a bounded runtime smoke next: check the API endpoints and start the Next dev server long enough to confirm the new pages respond on the LAN-facing host.
+
+
+Ran 8 commands
+The API endpoints and existing LAN pages respond with 200. Since the process on port 3000 is an older root-owned dev server from /app, I’m starting this edited workspace on a separate port (3001) so you can see the migrated UI without disturbing the existing service.
+
+
+Explored 1 search, ran 3 commands
+Worked for 10m 36s
+The local dev smoke hit a root-owned .next/dev lock left by the older root-run server. I’m moving that stale dev cache aside inside the ignored .next tree and restarting this workspace on port 3001.
+
+
+Edited 1 file, explored 1 file, 2 searches, ran 10 commands
+Context automatically compacted
+Error running remote compact task: timeout waiting for child process to exit
+23 files changed
++1152
+-192
+Undo
+
+Review
+
+apps/recruiter-ui/components/mission-control-shell.tsx
+apps/recruiter-ui/components/mission-control-ui.tsx
+apps/recruiter-ui/lib/talent-beacon-api.ts
+apps/recruiter-ui/app/assistant/page.tsx
+apps/recruiter-ui/app/dashboard/dashboard-client.tsx
+apps/recruiter-ui/app/dashboard/page.tsx
+apps/recruiter-ui/app/layout.tsx
+apps/recruiter-ui/app/page.tsx
+apps/recruiter-ui/app/review-packet/page.tsx
+apps/recruiter-ui/app/review-packet/review-packets-client.tsx
+apps/recruiter-ui/app/review-packets/page.tsx
+apps/recruiter-ui/app/runs/[id]/page.tsx
+apps/recruiter-ui/app/runs/page.tsx
+apps/recruiter-ui/app/diagnostics/diagnostics-client.tsx
+apps/recruiter-ui/app/diagnostics/page.tsx
+apps/recruiter-ui/app/recruiters/page.tsx
+apps/recruiter-ui/app/recruiters/recruiters-client.tsx
+apps/recruiter-ui/app/workbook/page.tsx
+apps/recruiter-ui/app/workbook/workbook-client.tsx
+apps/recruiter-ui/app/dashboard/dashboard-client.tsx
+apps/recruiter-ui/app/review-packet/review-packets-client.tsx
+apps/recruiter-ui/components/mission-control-shell.tsx
+apps/recruiter-ui/README.md
+
+### Assistant
+
+That TB-31 run looks like it mostly succeeded, with one annoying dev-server/cache issue at the end — not a code failure.
+
+What happened:
+
+```text
+23 files changed
++1152
+-192
+```
+
+That means Codex actually migrated the UI pretty heavily. It added the Mission Control shell, dashboard surfaces, workbook, recruiters, diagnostics, review packet queue, and updated the README.
+
+The important good signs:
+
+```text
+npm run build passed
+lint passed
+Python workflow tests passed
+API endpoints returned 200
+LAN pages returned 200
+```
+
+So the code is not obviously broken. The only messy part is this:
+
+```text
+root-owned .next/dev lock left by older root-run server
+```
+
+That means at some point the Next.js dev server was run as `root`, probably with `sudo`, and it created files in:
+
+```bash
+apps/recruiter-ui/.next/
+```
+
+owned by root. Your normal `atlas` user then could not safely reuse that dev cache.
+
+## What I would do next
+
+From the repo:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon
+```
+
+First inspect the repo state:
+
+```bash
+git status --short
+```
+
+Then check ownership:
+
+```bash
+ls -ld apps/recruiter-ui/.next
+find apps/recruiter-ui/.next -maxdepth 2 -user root -ls | head -50
+```
+
+Fix the ownership/cache issue one of two ways.
+
+### Option A — safest: delete the dev cache
+
+This is usually fine because `.next` is generated:
+
+```bash
+sudo rm -rf apps/recruiter-ui/.next
+```
+
+Then rebuild:
+
+```bash
+cd apps/recruiter-ui
+npm run build
+```
+
+### Option B — keep cache but fix ownership
+
+```bash
+sudo chown -R atlas:atlas /home/atlas/Atlas/talent-beacon/apps/recruiter-ui/.next
+```
+
+Then:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon/apps/recruiter-ui
+npm run build
+```
+
+I’d use **Option A**. Generated cache is disposable.
+
+## Start the migrated UI
+
+Since port `3000` may already be occupied by the older server, use `3001`:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon/apps/recruiter-ui
+npm run dev -- --host 0.0.0.0 --port 3001
+```
+
+Then open:
+
+```text
+http://192.168.93.128:3001/dashboard
+http://192.168.93.128:3001/runs
+http://192.168.93.128:3001/review-packets
+http://192.168.93.128:3001/recruiters
+http://192.168.93.128:3001/workbook
+http://192.168.93.128:3001/diagnostics
+```
+
+## Review before committing
+
+Run:
+
+```bash
+git diff --stat
+```
+
+Then inspect the big files:
+
+```bash
+git diff -- apps/recruiter-ui/components/mission-control-shell.tsx
+git diff -- apps/recruiter-ui/components/mission-control-ui.tsx
+git diff -- apps/recruiter-ui/lib/talent-beacon-api.ts
+git diff -- apps/recruiter-ui/app/dashboard/dashboard-client.tsx
+git diff -- apps/recruiter-ui/README.md
+```
+
+Also check for accidental duplicate routes:
+
+```bash
+find apps/recruiter-ui/app -maxdepth 3 -type f | sort
+```
+
+One thing jumps out from your file list:
+
+```text
+apps/recruiter-ui/app/review-packet/page.tsx
+apps/recruiter-ui/app/review-packets/page.tsx
+```
+
+That may be intentional as a redirect/legacy alias, but I’d verify. I’d prefer:
+
+```text
+/review-packets
+```
+
+as the real plural page, and maybe `/review-packet` redirects to it or is removed.
+
+## Suggested commit
+
+After you confirm the pages load:
+
+```bash
+git add apps/recruiter-ui
+git commit -m "TB-31 migrate recruiter UI to Mission Control shell"
+git push
+```
+
+## My read on it
+
+TB-31 looks successful. Codex did exactly what we wanted: it did not blindly copy Job Apps Agent 8; it rebuilt the useful Mission Control patterns in Talent-Beacon language.
+
+The next task after this should not be TB-32 yet until you visually inspect the migrated UI in Chrome. The immediate next step is:
+
+```text
+TB-31 verification polish:
+Open every new page, confirm no stale Job Apps wording, confirm API-backed panels load, then commit.
+```
+
+After that, TB-32 should be terminology cleanup and route polish.
+
+### User
+
+TB-31 is verified, committed, and pushed.
+
+Commit: fd59627 TB-31 migrate recruiter UI to Mission Control shell
+Pushed to: origin/main
+
+Checks passed:
+
+npm run lint
+npm run build
+pytest -q → 104 passed
+API endpoints after starting sidecar:
+/health → 200
+/api/metrics → 200
+/api/review-packet-runs?limit=1 → 200
+UI routes on port 3001:
+/dashboard, /runs, /review-packets, /recruiters, /workbook, /diagnostics → 200
+/review-packet → 307 redirect to /review-packets
+Headless Chrome loaded all six migrated pages and found the Mission Control shell.
+I left these running:
+
+UI: http://192.168.93.128:3001/dashboard
+API sidecar: http://192.168.93.128:8088/health
+One leftover: the quarantined root-owned cache folder still exists at .next/dev.root-owned-20260510050240. Passwordless sudo is unavailable here, so I could not remove it, but it is no longer blocking build or dev startup.
+
+
+
+
+
+5:45 AM
+
+### Assistant
+
+Nice — TB-31 is officially clean. That is a real milestone, not just “it runs on my machine” clean.
+
+The leftover folder is harmless for now:
+
+```bash
+.next/dev.root-owned-20260510050240
+```
+
+Since build/dev are no longer blocked and `.next` is generated/ignored territory, I’d leave it alone until you’re in a shell with sudo available. Later cleanup:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon/apps/recruiter-ui
+sudo rm -rf .next/dev.root-owned-20260510050240
+```
+
+Your current stable checkpoint is:
+
+```text
+TB-31 complete
+Commit: fd59627
+Mission Control shell migrated
+UI verified by Chrome
+API sidecar healthy
+104 Python tests passing
+Next build/lint clean
+```
+
+The next logical move is **TB-32 — terminology and route polish**, not another big UI migration. Keep it boring:
+
+```text
+Audit Talent-Beacon for leftover Job Apps wording, stale route names, old dashboard assumptions, and any confusing “agent” labels where the component is really a deterministic worker/task.
+```
+
+I’d make TB-32 a cleanup-only task with no architecture changes. That keeps fd59627 as the clean UI migration checkpoint and avoids turning the next commit into soup.
+
+### User
+
+Agreed. TB-31 is a clean checkpoint, and TB-32 should stay deliberately small: terminology, routes, labels, docs, no new architecture.
+
+I’d frame TB-32 as:
+
+TB-32 polish Talent-Beacon terminology and routes
+
+Scope:
+
+Audit for stale Job Apps / Agent 8 wording.
+Prefer /review-packets as canonical; keep /review-packet only as legacy redirect.
+Clean confusing “agent” labels where the thing is a task, node, worker, service, or assistant.
+Check README/UI text for old dashboard assumptions.
+Run lint/build/tests again.
+Commit separately from fd59627.
+The boring cleanup commit after a big migration is exactly the kind of boring we want.
+
+### Assistant
+
+Exactly. That’s the right size for TB-32: **polish, don’t expand.**
+
+Here’s the paste-ready task:
+
+```text id="01jecq"
+Task: TB-32 — Polish Talent-Beacon terminology and routes
+
+Repo:
+cd /home/atlas/Atlas/talent-beacon
+
+... [111 more lines of text id="01jecq" elided]
+```
+
+That should give Codex/Cursor a tight cleanup lane. No “while I’m here let me invent the CRM hierarchy engine” chaos gremlin.
+
+### User
+
+Yes — that framing is exactly right. TB-32 reads like a narrow post-migration cleanup pass, not a disguised follow-on feature, and keeping it as a separate boring commit after the migration is a sound engineering pattern.
+
+TB-32 framing
+I’d write it like this:
+
+TB-32: Polish Talent-Beacon terminology and routes
+
+Scope:
+
+Audit for stale “Job Apps” / “Agent 8” wording.
+
+Make /review-packets the canonical route.
+
+Keep /review-packet only as a legacy redirect.
+
+Replace confusing “agent” labels where the thing is really a task, node, worker, service, or assistant.
+
+Review README and UI copy for old dashboard assumptions.
+
+Re-run lint, build, and tests.
+
+Commit separately from fd59627.
+
+Non-goals:
+
+No new architecture.
+
+No workflow redesign.
+
+No behavior changes beyond naming, routing cleanup, redirects, and copy fixes.
+
+Acceptance checks
+I’d make the acceptance criteria explicit so the task stays small:
+
+No visible “Job Apps” or “Agent 8” strings remain unless intentionally preserved.
+
+/review-packets works everywhere the product expects.
+
+/review-packet redirects cleanly to /review-packets.
+
+Labels use the right noun for the actual concept.
+
+README and UI text no longer imply the pre-migration dashboard model.
+
+Lint, build, and tests all pass.
+
+Commit shape
+A commit message in this style would fit:
+
+chore(tb-32): polish terminology, canonicalize review-packets route, and clean stale dashboard copy
+
+If you want the ticket to be even tighter, add one guardrail line: “Rename only; do not refactor implementation structure unless required to preserve correctness.”
+
+Prepared using GPT-5.4 Thinking because Gemini 3.1 Pro Thinking was inapplicable or unavailable
+
+### Assistant
+
+Yep — that version is even tighter. I’d use your wording and add the guardrail line exactly as-is.
+
+Here’s the final paste-ready TB-32 prompt:
+
+```text
+Task: TB-32 — Polish Talent-Beacon terminology and routes
+
+Repo:
+cd /home/atlas/Atlas/talent-beacon
+
+... [68 more lines of text elided]
+```
+
+Tiny note: the last line says it was prepared using GPT-5.4 Thinking, but I’m **GPT-5.5 Thinking** here. Everything else is solid.
+
+### User
+
+That alignment between both outputs is a good signal — the scope is unambiguous and mechanically verifiable.
+
+What stands out
+The GPT-5.4 framing and the earlier thread converge on the same guardrails:
+
+Rename-only boundary — no structural refactoring.
+
+Explicit non-goals — prevents scope creep into architecture or workflow redesign.
+
+Separate commit from fd59627 — keeps the migration diff clean and reviewable.
+
+One practical addition
+If you want to make the audit trivial to verify, attach a quick regex checklist to the ticket so anyone can run it before opening the PR:
+
+bash
+# Stale terminology sweep
+grep -ri "job apps\|agent 8" src/ README.md
+grep -ri "review-packet[^s]" src/routes/  # catch non-plural usages
+grep -ri "\bagent\b" src/components/ --include="*.tsx" --include="*.ts"
+Suggested next step
+Drop the ticket into your tracker as-is. The acceptance criteria are already written as pass/fail checks, which means a reviewer can verify TB-32 in under ten minutes without needing migration context.
+
+If you need the actual redirect logic or a commit message template next, let me know and I’ll draft those.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+That’s a good addition. I’d tweak the grep paths because Talent-Beacon’s UI lives under `apps/recruiter-ui`, not a generic `src/`.
+
+Use this checklist instead:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon
+
+# Stale terminology sweep
+grep -RniE "job apps|agent 8" README.md docs apps packages src 2>/dev/null || true
+
+# Route naming sweep: find singular review-packet references
+grep -RniE "review-packet([^s]|$)" apps/recruiter-ui README.md docs 2>/dev/null || true
+
+# Agent wording sweep in UI/docs
+grep -RniE "\bagent\b" apps/recruiter-ui README.md docs 2>/dev/null || true
+```
+
+And for route verification:
+
+```bash
+curl -I http://192.168.93.128:3001/review-packets
+curl -I http://192.168.93.128:3001/review-packet
+```
+
+Expected:
+
+```text
+/review-packets → 200
+/review-packet  → 307 or 308 redirect to /review-packets
+```
+
+I’d add that to TB-32 under “Verification checklist.” It keeps the task wonderfully boring: grep, rename, build, test, commit.
+
+### User
+
+TB-32 Verification Checklist
+
+cd /home/atlas/Atlas/talent-beacon
+
+# Stale terminology sweep
+grep -RniE "job apps|agent 8" README.md docs apps packages src 2>/dev/null || true
+
+# Route naming sweep: find singular review-packet references
+grep -RniE "review-packet([^s]|$)" apps/recruiter-ui README.md docs 2>/dev/null || true
+
+# Agent wording sweep in UI/docs
+grep -RniE "\bagent\b" apps/recruiter-ui README.md docs 2>/dev/null || true
+Route check:
+
+curl -I http://192.168.93.128:3001/review-packets
+curl -I http://192.168.93.128:3001/review-packet
+Expected:
+
+/review-packets → 200
+/review-packet → 307 or 308 redirect to /review-packets
+Then the standard closeout:
+
+cd apps/recruiter-ui
+npm run lint
+npm run build
+
+cd ../..
+pytest -q
+git status --short
+That gives TB-32 a nice clean boundary: grep, rename only where warranted, verify canonical route behavior, build/test, commit.
+
+
+
+
+
+5:53 AM
+
+
+
+
+
+Full access
+
+5.5
+Medium
+
+IDE context
+
+
+Work locally
+
+### Assistant
+
+Perfect. That checklist is tight enough to hand to Codex/Cursor without them wandering into “while I’m here…” territory.
+
+I’d append it to the TB-32 prompt as the final section:
+
+```text id="8kxdf7"
+Verification checklist:
+
+cd /home/atlas/Atlas/talent-beacon
+
+# Stale terminology sweep
+... [24 more lines of text id="8kxdf7" elided]
+```
+
+One small thing: the `grep -RniE "review-packet([^s]|$)"` check may intentionally catch the legacy redirect route file. That’s fine. The instruction should be:
+
+```text id="m906pi"
+Singular /review-packet references are allowed only for the legacy redirect route or tests/docs explaining that redirect.
+```
+
+That gives TB-32 a clear pass/fail line without forcing a dumb delete of the redirect.
+
+### User
+
+That checklist is exactly the right shape — grep-first, verify routes mechanically, then lint/build/test before commit. It keeps the task bounded and reviewable.
+
+Small refinements
+Regex edge case — the route grep review-packet([^s]|$) will catch most instances, but you might want to also scan for review-packet/ or quoted strings like "review-packet". A slightly broader pattern:
+
+bash
+grep -RniE "review-packet([^a-z]|$)" apps/recruiter-ui README.md docs 2>/dev/null || true
+Redirect status — 307/308 are ideal because they preserve method and body on redirect, but 301/302 are acceptable for a GET-only legacy route. If your router defaults to 302, that still satisfies the acceptance criteria.
+
+Agent grep noise — if grep -RniE "\bagent\b" floods output with legitimate words like "agency" or "intelligent agent," narrow it to UI labels:
+
+bash
+grep -RniE "agent" apps/recruiter-ui/src --include="*.tsx" --include="*.ts" --include="*.json" 2>/dev/null | grep -iv "agency\|agentive" || true
+Execution order
+Your sequence is correct:
+
+Grep audit to see what needs changing.
+
+Rename only — no structural edits.
+
+Curl both routes to confirm canonical + redirect behavior.
+
+Lint, build, test.
+
+git status --short to confirm the diff is purely rename/copy cleanup.
+
+Commit separately from fd59627.
+
+That gives you a one-page verification script anyone on the team can run to prove TB-32 is complete.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+Yep — I’d fold those refinements in. Final TB-32 verification block:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon
+
+# Stale terminology sweep
+grep -RniE "job apps|agent 8" README.md docs apps packages src 2>/dev/null || true
+
+... [16 more lines of bash elided]
+```
+
+Expected:
+
+```text
+/review-packets → 200
+/review-packet  → redirect to /review-packets
+Preferred redirect status: 307 or 308
+Acceptable for GET-only legacy route: 301 or 302
+```
+
+Closeout:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon/apps/recruiter-ui
+npm run lint
+npm run build
+
+cd /home/atlas/Atlas/talent-beacon
+pytest -q
+git status --short
+```
+
+Commit:
+
+```bash
+git add .
+git commit -m "chore(tb-32): polish terminology, canonicalize review-packets route, and clean stale dashboard copy"
+git push
+```
+
+That makes TB-32 nicely mechanical: grep, rename only where warranted, route smoke, lint/build/test, separate commit.
+
+### User
+
+TB-32 is done, committed, and pushed.
+
+Commit: 01c4417 chore(tb-32): polish terminology, canonicalize review-packets route, and clean stale dashboard copy
+
+What changed:
+
+Cleaned current docs/UI wording around “agent” vs workflow/task/worker/service.
+Removed stale Job Apps dashboard wording from current setup docs.
+Kept historical docs/task_contracts/* references intact since those are explicitly source-contract archives.
+Canonicalized review packet UI files so /review-packets owns its components.
+Left /review-packet as the legacy redirect-only route.
+Verification passed:
+
+/review-packets → 200
+/review-packet → 307, location: /review-packets
+npm run lint
+npm run build
+pytest -q → 104 passed
+Pushed to origin/main; working tree is clean.
+
+
+README.md
+Document · MD
+Open
+
+
+apache_setup.md
+Document · MD
+Open
+
+
+docker_setup.md
+Document · MD
+Open
+
+
+docker_task_architecture.md
+Document · MD
+Open
+
+
+python315_wheelhouse.md
+Document · MD
+
+### Assistant
+
+Beautiful. TB-32 did exactly what it was supposed to do: **boring cleanup after a big migration**.
+
+Current checkpoint:
+
+```text
+TB-31 → fd59627
+Mission Control shell migrated and verified.
+
+TB-32 → 01c4417
+Terminology/routes/docs cleaned and verified.
+```
+
+The key thing I like: you preserved `docs/task_contracts/*` as historical contract archives instead of “cleaning” them into fiction. That is the right call.
+
+Next logical step is **not** another cleanup pass. You now have a stable UI shell and clean vocabulary, so the next task can be functional again.
+
+I’d frame the next one as:
+
+```text
+TB-33 — Review Packet workflow polish
+```
+
+Focus: make review packets first-class and operator-friendly without changing send behavior.
+
+Hard line:
+
+```text
+No auto-send. No recruiter reply without explicit human approval.
+```
+
+That keeps the momentum: TB-31 built the shell, TB-32 cleaned the language, TB-33 makes the core Talent-Beacon object actually useful.
+
+### User
+
+That is exactly how a post-migration cleanup commit should look — small, verifiable, and boring in the best way.
+
+What went right
+Historical docs preserved. Keeping docs/task_contracts/* untouched was the right call; those are source-contract archives, not living documentation, and editing them would break audit trails.
+
+307 redirect. Using a temporary redirect rather than 301/302 means you can still reclaim the old route later if needed, while browsers and clients still follow it automatically.
+
+104 tests passing. Zero regressions across the full suite confirms this was truly a rename-only pass.
+
+Clean working tree after push. The diff was purely terminology, routing, and copy — no stray files or build artifacts.
+
+The commit stands alone
+01c4417 is now a clean bookmark in history: anyone bisecting later can skip straight past it knowing it contains zero logic changes. That separation from fd59627 will save time if you ever need to revert or cherry-pick around the migration.
+
+TB-32 is closed. If the next milestone involves actual feature work on top of this cleaned foundation, you are starting from a coherent baseline.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+Yep — TB-32 is a proper “bookmark commit.” Clean migration history now looks like:
+
+```text
+fd59627  TB-31 migrate recruiter UI to Mission Control shell
+01c4417  TB-32 polish terminology, canonicalize review-packets route, and clean stale dashboard copy
+```
+
+That is a strong baseline: UI shell is migrated, language is coherent, canonical route is settled, and the old singular route is safely parked as a redirect.
+
+For the next milestone, I’d move from cleanup to the core product object:
+
+```text
+TB-33 — Review Packet workflow polish
+```
+
+Keep it focused on making review packets more useful in Mission Control:
+
+```text
+Improve packet list/detail UX
+Expose source email/run context clearly
+Show recruiter/company/opportunity summary
+Show fit/location/risk flags
+Show suggested response as draft-only
+Keep human approval as the gate
+No auto-send
+No CRM auto-merge
+```
+
+TB-31 gave you the room. TB-32 swept the floor. TB-33 can finally start arranging the furniture.
+
+### User
+
+Exactly. TB-33 should be the first product-feel pass, but still bounded.
+
+I’d frame it as:
+
+TB-33 polish review packet workflow UX
+
+Scope:
+
+Improve /review-packets queue scanability.
+Improve /runs/[id] packet detail readability.
+Make source context obvious: sender, domain, company, role, location, timestamps.
+Surface fit score, recommendation, location/source/risk flags.
+Show reply package as draft-only / operator action, never send.
+Keep approval/manual-send state explicit.
+No backend schema changes unless the existing API already exposes the data.
+No auto-send, no CRM merge, no new architecture.
+Verification:
+
+Lint/build/tests.
+Route smoke for /review-packets, /runs, and at least one /runs/[id] if sample data exists.
+Quick stale wording sweep for “auto send” or ambiguous “send” language in the review packet UI.
+Nice progression: TB-31 built the shell, TB-32 made it coherent, TB-33 makes the daily operator path feel intentional.
+
+
+
+
+
+6:01 AM
+
+### Assistant
+
+Exactly — TB-33 should be **product UX polish**, not plumbing. Here’s the paste-ready version.
+
+```text id="rqlgnu"
+Task: TB-33 — Polish review packet workflow UX
+
+Repo:
+cd /home/atlas/Atlas/talent-beacon
+
+... [136 more lines of text id="rqlgnu" elided]
+```
+
+That keeps TB-33 safely in the lane: make the operator path nicer, clearer, and safer — without accidentally building the send engine before the review model is ready.
+
+### User
+
+That progression is exactly right — TB-33 is the first ticket where the operator’s daily path becomes intentional, but the guardrails keep it from ballooning into a backend refactor.
+
+What makes this framing work
+Schema-free constraint. Forcing the pass to use only already-exposed API data keeps the ticket frontend-only, which means it stays reviewable in a single diff.
+
+Explicit send boundaries. “Draft-only / operator action, never send” is a safety invariant; making it a non-goal prevents accidental automation creep.
+
+Source context as first-class. Surfacing sender, domain, company, role, location, and timestamps together turns the detail view into a decision-support screen rather than a raw data dump.
+
+Suggested tightening
+Add one line to the scope to define how scanability improves:
+
+Queue: sortable columns or dense badge rows for fit score, location flag, and risk flag.
+
+Detail: reply package rendered in a visually distinct “Draft / Pending Operator” state (e.g., muted send button with explicit label, not a hidden toggle).
+
+If you want the acceptance criteria to be pass/fail verifiable:
+
+Criterion	Check
+Criterion	Check
+Fit score visible on queue row	Visual inspection of /review-packets
+Source context (sender, domain, company, role, location, timestamps) visible on /runs/[id]	Visual inspection
+Reply package shows “Draft — requires operator send” or equivalent	Visual inspection + grep for ambiguous send wording
+No “auto send” or “auto-send” strings in review packet UI	grep -Rni "auto.send" apps/recruiter-ui/src returns nothing
+Approval/manual-send state is explicit in UI	Button or badge labeled “Send” or “Approved for Send” only after operator action
+Verification addition
+Add this to the TB-33 checklist before lint/build:
+
+bash
+# Safety wording sweep
+grep -RniE "auto[ -]?send|send now|immediate send" apps/recruiter-ui/src 2>/dev/null || true
+Commit shape
+feat(tb-33): improve review-packets queue scanability and run detail readability
+
+If any of the changes touch CSS/layout significantly, a second chore(tb-33): align review-packet layout tokens split keeps the functional diff clean.
+
+The progression holds: TB-31 built the shell, TB-32 made it coherent, and TB-33 makes the operator path feel trustworthy.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+Yep — that tightening makes TB-33 more testable without making it bigger.
+
+I’d update the TB-33 prompt with these additions:
+
+```text id="xyq9f3"
+Additional UX requirements:
+- Queue scanability should improve through sortable columns or dense badge rows for fit score, location flag, source flag, and risk flag.
+- Detail readability should improve by grouping source context, opportunity summary, decision signals, and draft reply into visually distinct sections.
+- Reply package must render in a clearly labeled “Draft / Pending Operator” state.
+- Do not use a primary “Send” action unless the UI makes manual/operator control unmistakable.
+```
+
+Add this to verification:
+
+```bash id="tj7k90"
+# Safety wording sweep
+grep -RniE "auto[ -]?send|autosend|send now|immediate send|send automatically|automatic.*send" apps/recruiter-ui 2>/dev/null || true
+
+# Manual-send wording review
+grep -RniE "send reply|send email|approved for send|manual send|draft" apps/recruiter-ui 2>/dev/null || true
+```
+
+And I’d use your commit message:
+
+```bash id="az7xs0"
+git commit -m "feat(tb-33): improve review-packets queue scanability and run detail readability"
+```
+
+Final pass/fail criteria for TB-33:
+
+```text id="5ts3ap"
+- Fit score visible on /review-packets where data exists.
+- Location/source/risk flags visible on /review-packets where data exists.
+- Source context visible on /runs/[id] where data exists: sender, domain, company, role, location, timestamps.
+- Reply package visibly marked draft-only / pending operator.
+- No UI implies Talent-Beacon sends recruiter replies automatically.
+- No backend schema migration.
+- Lint/build/tests pass.
+```
+
+That gives the coding tool enough specificity to make the UX better, but not enough rope to build an accidental outbound-mail system.
+
+### User
+
+That is a tightly bounded, safely guardrailed ticket. The specificity is exactly right for a coding tool — enough to know what good looks like, not enough to accidentally build an outbound automation pipeline.
+
+What makes this ready to execute
+Negative space is defined. “No backend schema migration” and “No UI implies automatic send” are hard constraints that prevent the most common creep paths.
+
+Verification is mechanical. The grep patterns are explicit enough that a script can prove the safety invariant; the visual checks are explicit enough that a human can verify them in under two minutes.
+
+Commit message matches scope. feat(tb-33): improve review-packets queue scanability and run detail readability signals product improvement without implying architectural change.
+
+One optional addition
+If you want the coding tool to know the visual hierarchy explicitly, add a single line to the UX requirements:
+
+Decision signals (fit score, flags) should appear above the fold on /runs/[id]; draft reply should appear below or in a collapsible panel so the operator reviews context before acting.
+
+That prevents a layout where the send draft accidentally dominates the page.
+
+Handoff readiness
+TB-33 is now at the sweet spot: a product-feel pass with safety rails, pass/fail criteria, and a verification script. It can go straight to implementation without further scoping.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+Agreed — add that one line. It protects the operator flow: **context first, draft second**.
+
+Final TB-33 addendum:
+
+```text id="u570ag"
+Visual hierarchy requirement:
+Decision signals such as fit score, recommendation, location/source/risk flags, and missing-data warnings should appear above the fold on /runs/[id] where data exists. The draft reply should appear below the decision context or inside a clearly labeled collapsible panel so the operator reviews the context before acting.
+```
+
+And the final commit target stays:
+
+```bash id="35qydv"
+git commit -m "feat(tb-33): improve review-packets queue scanability and run detail readability"
+```
+
+That’s ready to hand off. TB-33 can now be implemented without another scoping pass.
+
+### User
+
+I’ll start TB-33 as a bounded UX pass on /review-packets and /runs/[id]: inspect current data shape first, then make UI-only changes around scanability, sectioning, and draft-only safety language.
+
+
+Explored 4 files, 1 search, ran 1 command
+The existing API already exposes enough for TB-33, including raw review_packet, raw_state, reply packages, draft receipts, and manual-send receipts. I’m going to keep the backend untouched and derive flags in the client from existing fields.
+
+
+Explored 4 files, ran 1 command
+I’ve got the shape now: the queue can show derived badge rows from existing list fields, and the detail view can pull richer flags out of review_packet/raw_state without adding any schema. I’ll keep the UI explicit that drafts are drafts and manual send is only a record after the operator acts outside Talent-Beacon.
+
+
+Created 1 file, edited 1 file
+The detail page is now grouped around the actual operator workflow: source context, opportunity summary, decision signals, operator decision, draft/pending operator, and receipts/history. I’m checking formatting/types now; this is exactly where small TS nits tend to surface.
+
+
+Running grep -RniE "send reply|send email|approved for send|manual send|draft" apps/recruiter-ui 2>/dev/null || true
+Running grep -RniE "send reply|send email|approved for send|manual send|draft" apps/recruiter-ui 2>/dev/null || true
+
+
+Running command
+
+
+Running command
+
+
+Running command
+
+### Assistant
+
+Good — that TB-33 implementation is staying in the lane.
+
+The key line is this:
+
+```text
+The existing API already exposes enough for TB-33 ... I’m going to keep the backend untouched
+```
+
+That means TB-33 is still a **UI-only UX pass**, which is exactly what you wanted.
+
+What it sounds like changed so far:
+
+```text
+/review-packets
+- better queue scanability
+- derived badge rows from existing list fields
+- no schema changes
+
+... [9 more lines of text elided]
+```
+
+The grep currently running is the right safety check. For any hits, the rule should be:
+
+```text
+Allowed:
+- “Draft reply”
+- “Manual send”
+- “Send receipt”
+- “Recorded after operator action”
+- “Talent-Beacon does not send automatically”
+
+Needs review/change:
+- “Send reply”
+- “Send email”
+- “Send now”
+- “Approved for send” if it sounds like the system will send it
+```
+
+When Codex finishes, the closeout should be:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon/apps/recruiter-ui
+npm run lint
+npm run build
+
+cd /home/atlas/Atlas/talent-beacon
+pytest -q
+
+curl -I http://192.168.93.128:3001/review-packets
+curl -I http://192.168.93.128:3001/runs
+```
+
+And if there is sample run data:
+
+```bash
+curl -I http://192.168.93.128:3001/runs/<sample-run-id>
+```
+
+Commit target still looks right:
+
+```bash
+git add .
+git commit -m "feat(tb-33): improve review-packets queue scanability and run detail readability"
+git push
+```
+
+So far this looks like a clean TB-33, not a stealth backend refactor.
+
+### User
+
+That sequence is exactly right — inspect first, derive client-side, then shape the UI around the operator’s decision flow without touching the API contract.
+
+What to watch for while types settle
+Since you are deriving flags from review_packet / raw_state, the TypeScript nits will likely show up in:
+
+Optional chaining depth — raw_state?.metadata?.source?.domain can get verbose; a small derived-type helper at the top of the component keeps the template readable.
+
+Union narrowing — if fit_score arrives as number | null | undefined, make sure the badge component handles all three without rendering 0 or null as a visible score.
+
+Receipt discrimination — draft vs manual-send receipts might share a base type; confirm the UI branch logic is exhaustive so TS does not complain later when new receipt shapes appear.
+
+On the grep results
+If the safety wording sweep returns hits, the priority order is:
+
+Any hit that looks like a button label or action text — rename immediately.
+
+Any hit in comments or test fixtures — update so future greps stay clean.
+
+Any hit in docs/ or README — verify it is not describing behavior the UI no longer supports.
+
+The grouping you described — source context → opportunity summary → decision signals → operator decision → draft/pending → receipts/history — mirrors the actual cognitive flow an operator follows. That makes the page feel intentional rather than assembled.
+
+Keep going; the shape sounds solid.
+
+Prepared using Kimi K2.6
+
+### Assistant
+
+Exactly — the dangerous parts of TB-33 are not the layout changes; they’re the tiny wording/type ambiguities that later make the UI feel like it has permissions it does not have.
+
+I’d keep the closeout standard this way:
+
+```bash
+cd /home/atlas/Atlas/talent-beacon
+
+# Safety wording sweep
+grep -RniE "auto[ -]?send|autosend|send now|immediate send|send automatically|automatic.*send" apps/recruiter-ui 2>/dev/null || true
+grep -RniE "send reply|send email|approved for send|manual send|draft" apps/recruiter-ui 2>/dev/null || true
+... [10 more lines of bash elided]
+```
+
+For grep hits, the pass/fail rule stays simple:
+
+```text
+Allowed:
+draft reply
+suggested draft
+manual send receipt
+recorded after operator action
+... [8 more lines of text elided]
+```
+
+And yes — putting the draft below the decision context is the right call. The operator should see **why** the reply is recommended before seeing **what** the reply says.
+
+### User
+
+Agreed. That pass/fail rule is the important guardrail for this whole surface.
+
+TB-33 landed cleanly at 57c50f0, and the current wording matches the allowed side of that line:
+
+Allowed language present:
+
+draft
+draft only
+pending operator
+manual send recorded
+Record external manual send
+operator controls any outbound reply outside this workflow
+no automatic email sending
+No UI copy found implying:
+
+send now
+send reply
+send email
+approved for send
+Talent-Beacon sends recruiter replies itself
+And yes, the flow now reads in the right order: source and opportunity context, decision signals, operator decision, then draft. The reply text is downstream of the reasoning instead of feeling like the app is trying to rush the operator into action.
+
+### Assistant
+
+Excellent — TB-33 is the right kind of feature commit: noticeable product improvement, zero safety creep.
+
+Current clean sequence:
+
+```text
+fd59627  TB-31 migrate recruiter UI to Mission Control shell
+01c4417  TB-32 polish terminology, canonicalize review-packets route, and clean stale dashboard copy
+57c50f0  TB-33 improve review-packets queue scanability and run detail readability
+```
+
+The important win is that the UI now communicates the operating model correctly:
+
+```text
+Talent-Beacon prepares decision support and draft material.
+The operator reviews context first.
+Any outbound recruiter reply happens manually outside the workflow.
+Manual sends can be recorded afterward.
+```
+
+That is a strong baseline for the next layer.
+
+I’d call TB-33 closed. The next logical milestone is probably **TB-34 — Recruiter observation ingestion / CRM evidence feed**, but only if you want to move from UI polish back into data flow.
+--------------------------------------------------------------------------------
+
+PACKET pkt-HB-17
+QUESTION: How is the GitHub integration set up?
+
+--- full document 0 ---
+---
+title: "Nexus AUDIT"
+conversation_id: 6a0dc8c1-9ca0-83ea-b93c-763095781340
+created: 2026-05-20
+updated: 2026-05-20
+models: ['gpt-5-5-thinking']
+turns: 64
+words: 10956
+source: chatgpt-export
+---
+
+# Nexus AUDIT
+### User
+
+Still unstaged (not in this commit)
+Other work remains in the tree (agents, compose, etc.). docs/secrets.md also has an unstaged AI-brain launcher section — separate from the decommission commit; commit or discard when that work is ready.
+
+Host Passbolt/Bitwarden services, vault files, and Agent 9 backups were not touched, per the boundary you set.
+
+Good commit boundary.
+
+
+
+Current known-good state
+
+Commit: 9d4ed24
+
+Branch: main
+
+Scope: KeePassXC-only policy, docs, guardrails, and stale Bitwarden/Passbolt cleanup
+
+Verification: passed
+
+Legacy grep: clean except allowlisted policy/decommission docs
+
+Host/vault destructive cleanup: not touched
+
+Important separation
+
+
+
+The unstaged docs/secrets.md AI-brain launcher section should stay separate. That sounds like the next logical commit because it relates to how Codex/Claude/Cursor sessions load KeePassXC + Agent 9 Datacore env, not the Bitwarden/Passbolt decommission itself.
+
+
+
+Suggested next commit framing:
+
+
+
+Document KeePassXC-backed AI brain launcher environment
+
+
+
+Keep that one focused on:
+
+
+
+launching Cursor/Codex/Claude from a shell with KeePassXC-loaded env
+
+scripts/load-runtime-secrets-from-keepass.sh
+
+scripts/export-agent9-datacore-env.sh
+
+NEXUS_METADATA_EXCHANGE_DATABASE_URL
+
+no Bitwarden / no Passbolt reintroduction
+
+Preparing a focused commit for the AI-brain launcher docs and related files. Checking what's unstaged and scoped to that work.
+
++launcher shell and must be inherited by the AI tool process.
++
+ Set in `.env` (non-secret flags):
+ 
+ ```bash
+=== Nexus secret hygiene check ===
+Repo: /home/jarvis/projects/nexus
+
+
+Secret hygiene check passed.
+... [45 more lines of bash elided]
+```bash
+scripts/launch-ai-brain.sh cursor
+scripts/launch-ai-brain.sh -- codex
+scripts/launch-ai-brain.sh -- claude
+```
+
+Core invariant:
+
+```text
+KeePassXC loader
+  → scripts/load-runtime-secrets-from-keepass.sh
+  → scripts/export-agent9-datacore-env.sh
+  → NEXUS_METADATA_EXCHANGE_DATABASE_URL present
+  → AI tool launched from same shell
+```
+
+## Remaining unstaged items
+
+These should **not** be mixed into either prior commit:
+
+```text
+tests/test_mcp_control_static.py
+uv.lock
+workspace.code-workspace
+other agents/compose work
+```
+
+Suggested handling:
+
+| File / Area | Likely boundary |
+|---|---|
+| `tests/test_mcp_control_static.py` | Agent 7 MCP Controller / Control Panel commit |
+| `uv.lock` | Dependency/tooling commit only if intentionally regenerated |
+| `workspace.code-workspace` | Usually local-only; likely add to `.gitignore` unless intentionally shared |
+| agents / compose changes | Separate runtime/agent commits |
+
+## Recommended next commit boundary
+
+```text
+Harden Agent 7 MCP controller static contract
+```text
+
+Only include Agent 7 MCP static tests and directly related source/docs. Keep `uv.lock` and workspace files out unless they are required for that specific change.
+
+### User
+
+... [61 more lines of text elided]
+```text
+Wire Nexus runtime stack changes
+```text
+
+Only use that if `docker-compose.stack.yml` is the main intentional change. Otherwise keep going feature-by-feature.
+
+### User
+
+... [52 more lines of text elided]
+```text
+agent10-draft profile is wired, but the service is not runnable until
+src/nexus/skills/agent_10_recruiter_draft/ is committed.
+```
+
+That means the next clean slice should probably be:
+
+```text
+Add Agent 10 recruiter draft skill
+```
+
+## Suggested next slice
+
+Include only:
+
+```text
+src/nexus/skills/agent_10_recruiter_draft/
+tests for Agent 10 recruiter draft
+any direct API/entrypoint wiring required for the 8091 service
+```
+
+Keep out:
+
+```text
+Agent 1–3 pipeline changes
+Agent 8 evidence drawer UI
+uv.lock unless required
+workspace.code-workspace
+CloakBrowser changes
+```
+
+## Follow-up verification for that slice
+
+```bash
+python -m pytest tests/*agent_10* -q
+docker compose --profile agent10-draft config
+docker compose --profile agent10-draft up --build agent10-recruiter-draft
+```text
+
+After that commit, `e77bac9` stops being “future wiring” and becomes operational wiring.
+
+### User
+
+... [53 more lines of text elided]
+```text
+POST /api/generate-recruiter-draft
+```
+
+Runtime service:
+
+```text
+agent-10-recruiter-draft
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8091/health
+```
+
+Expected:
+
+```json
+{"status":"ok"}
+```
+
+## Clean interpretation
+
+Agent 10 is now correctly bounded as:
+
+```text
+Agent 8 supplies DraftContextPacket
+→ Agent 10 applies safety gate
+→ Agent 10 generates DraftResult
+→ no send, no submit, no mailbox mutation
+→ Agent 8/operator remains the control surface
+```text
+
+## Suggested next commit order
+
+| Next slice | Suggested boundary |
+|---|---|
+... [8 more lines of text elided]
+```text
+Add Agent 8 evidence drawer view
+```text
+
+### User
+
+Why this commit was needed
+f6c011f already wired run-detail.tsx, nexus-api.ts, and review_history_api.py, but these were missing from git:
+... [61 more lines of text elided]
+```text
+run-detail.tsx / nexus-api.ts / review_history_api.py were wired,
+but the drawer component, storage field, browser client, and tests were not committed.
+```text
+
+That makes `0c04a1e` a **completion commit**, not scope creep.
+
+## Boundary looks correct
+
+... [13 more lines of text elided]
+```bash
+pytest tests/test_agent8_evidence_drawer_static.py
+# 51 passed
+```
+
+## Reconcile note
+
+Run this locally to confirm whether `22f4386`, `ded97b0`, and `7802b38` sit between `1dc6cb3` and `0c04a1e`:
+
+```bash
+git log --oneline --decorate --graph --max-count=20
+```text
+
+## Remaining slices
+
+| Area | Suggested boundary |
+|---|---|
+... [8 more lines of text elided]
+```text
+Add Agent 1–3 contract-priority pipeline behavior
+```text
+
+### User
+
+Reconcile: CRM commits between 1dc6cb3 and 0c04a1e
+Yes — they sit on main in this order:
+... [73 more lines of text elided]
+```text
+Agent 1 → Agent 2 → Agent 3
+```text
+
+Included:
+
+- Agent 1 routes to `agent_02_job_cleaner`
+- Agent 2 handles Gmail recruiter intake batch path
+... [17 more lines of text elided]
+```text
+Align agent registry keys for Agent 7 and Agent 10
+```
+
+Include only:
+
+```text
+src/nexus/skills/agents/registry.py
+tests/test_pipeline_agent_registry.py
+```
+
+Reason: it is likely small, easy to verify, and removes naming drift before the larger Agent 10 observer runtime commit.
+
+Then do:
+
+```text
+Add Agent 10 observer runtime
+```text
+
+Keep `docs/dev_notes/mail_provider_boundary_status.md` separate unless it directly documents the observer runtime boundary.
+
+### User
+
+... [43 more lines of text elided]
+```text
+9fcf1b4 = Agent 8 CRM PostgreSQL 17 wiring + Agent 10 observer runtime
+```text
+
+That is not ideal, but it is defensible because the observer runtime is stack-health related and can reasonably sit near CRM/runtime infrastructure work. Rewriting adds risk and consumes time without changing runtime behavior.
+
+## Current tail
+
+... [10 more lines of text elided]
+```text
+Document mail provider boundary status
+```
+
+Include only:
+
+```text
+docs/dev_notes/mail_provider_boundary_status.md
+```
+
+Then handle Agent 8 command-center docs separately:
+
+```text
+Update Agent 8 Command Center operating contract
+```
+
+Include only:
+
+```text
+src/nexus/skills/agent_08_command_center/AGENT.MD
+src/nexus/skills/agent_08_command_center/SKILL.MD
+```
+
+Keep out:
+
+```text
+uv.lock
+workspace.code-workspace
+smoke/playwright artifacts
+gmail exporter scripts
+```text
+
+## Only split `9fcf1b4` if
+
+- it has not been pushed/shared, **and**
+- you want the repo history to show Agent 10 observer as its own isolated feature commit, **and**
+... [44 more lines of text elided]
+```text
+Add Agent 10 stack health observer runtime
+```
+
+Include only:
+
+```text
+src/nexus/skills/agent_10_stack_health_observer/docker_state.py
+src/nexus/skills/agent_10_stack_health_observer/langsmith_adapter.py
+src/nexus/skills/agent_10_stack_health_observer/main.py
+src/nexus/skills/agent_10_stack_health_observer/snapshot.py
+src/nexus/skills/agent_10_stack_health_observer/markdown_report.py
+src/nexus/skills/agent_10_stack_health_observer/mail_boundary.py
+tests/test_agent_10_stack_health_observer.py
+```
+
+Keep out:
+
+```text
+uv.lock
+workspace.code-workspace
+smoke/playwright artifacts
+gmail exporter scripts
+deploy/
+```
+
+Recommended verification:
+
+```bash
+pytest tests/test_agent_10_stack_health_observer.py -q
+pytest tests/*agent_10* -q
+```text
+
+No rebase needed. The history is now clean enough and the remaining observer slice can land normally.
+
+### User
+
+... [60 more lines of text elided]
+```bash
+pytest tests/test_agent_10_stack_health_observer.py
+# 25 passed
+
+pytest tests/*agent_10*
+# 43 passed
+```
+
+## Next tiny follow-up
+
+The remaining Agent 10 observer docs can be a small doc-only commit:
+
+```text
+Update Agent 10 observer operating contract
+```
+
+Include only:
+
+```text
+src/nexus/skills/agent_10_stack_health_observer/AGENT.MD
+src/nexus/skills/agent_10_stack_health_observer/SKILL.MD
+```
+
+Keep the rest out:
+
+```text
+uv.lock
+workspace.code-workspace
+smoke/playwright artifacts
+gmail exporter
+deploy/
+```text
+
+That would close the Agent 10 observer slice cleanly.
+
+### User
+
+... [136 more lines of text elided]
+```text
+b8c4069 → b1b3ac6 → b4b48c7 → 1cf4390 → a555772 → e334a4f
+```text
+
+## Current clean interpretation
+
+Agent 10 observer now has:
+
+... [20 more lines of text elided]
+```text
+Add Agent 8 CRM service runtime
+```text
+
+### User
+
+Might want to avoid Agent 8  while its still being built
+
+... [16 more lines of text elided]
+```text
+Add Gmail intake/exporter guardrails
+```
+
+Include only mail-ingestion-related files, for example:
+
+```text
+tests/test_agent6_gmail_to_agent1_timer_static.py
+tests/test_gmail_raw_run_exporter.py
+gmail exporter scripts
+```
+
+Keep out:
+
+```text
+services/agent-8-crm/
+Agent 8 CRM runtime changes
+smoke/playwright artifacts
+workspace.code-workspace
+uv.lock unless required
+deploy/
+```
+
+## Current rule of thumb
+
+```text
+Do not touch Agent 8 runtime again until the CRM service shape is stable.
+Use Agent 6 / Agent 6.5 / mail ingestion slices for now.
+```text
+
+### User
+
+No rebase needed. If you want a follow-up CRM slice, the natural boundary would be whatever comes after 558784d (e.g. recruiter-side routes, Agent 10 draft integration, or compose env hardening) — say which direction and we can scope the next commit.
+
+... [118 more lines of text elided]
+```bash
+pytest tests/test_gmail_raw_run_exporter.py tests/test_agent6_gmail_to_agent1_timer_static.py
+# 14 passed
+```
+
+## Deploy files are acceptable here
+
+I would **not split** the two systemd unit files out. They are not a broad deployment slice; they are part of the Agent 6 Gmail timer contract and are covered by the static tests. Keeping them with the wrapper is coherent.
+
+## Current tail
+
+```text
+e334a4f → 558784d → 16ee715
+```text
+
+## Remaining cleanup
+
+| Area | Recommendation |
+|---|---|
+... [45 more lines of text elided]
+```text
+e334a4f → 558784d → 16ee715 → 74d5aa9
+```text
+
+## `74d5aa9` boundary
+
+| Area | Status |
+|---|---|
+... [18 more lines of text elided]
+```text
+Finalize secret manager decommission status
+```
+
+Include only:
+
+```text
+docs/dev_notes/secret_manager_decommission.md
+```text
+
+Keep Agent 8 and `uv.lock` out.
+
+### User
+
+... [20 more lines of text elided]
+```text id="c5639w"
+e334a4f → 558784d → 16ee715 → 74d5aa9 → d4978fc
+```text
+
+## Current status
+
+| Area | Status |
+|---|---|
+... [89 more lines of text elided]
+```text
+a555772 + e334a4f  Agent 10 observer runtime + docs
+558784d            Agent 8 CRM API
+16ee715            Gmail intake/exporter guardrails
+74d5aa9            .gitignore / artifact cleanup
+d4978fc            Secret-manager decommission doc finalization
+```text
+
+## Correct holds
+
+| Item | Handling |
+|---|---|
+... [8 more lines of text elided]
+```text
+1. Hold Agent 8
+2. Commit uv.lock as lockfile-only
+3. Commit/remove/ignore the Docker Desktop sudo cleanup script
+```text
+
+No rebase. No cleanup pressure. Boundaries are clean.
+
+### User
+
+... [163 more lines of text elided]
+```text
+No tree action required.
+```text
+
+The remaining unstaged items are intentional holds, not drift. Agent 8 stays off the commit path until intentionally resumed.
+
+### User
+
+... [10 more lines of text elided]
+```bash
+git status --short
+git diff -- services/agent-8-crm/
+git diff -- src/nexus/skills/agent_08_command_center/
+git diff -- tests/ | grep -i agent8 || true
+```
+
+Do **not** stage:
+
+```text
+uv.lock
+workspace.code-workspace
+scripts/remove-docker-desktop-sudo.sh
+smoke/playwright artifacts
+```
+
+---
+
+## Commit 1: Agent 8 CRM service runtime
+
+Use this if the current unstaged work is mostly under:
+
+```text
+services/agent-8-crm/
+```
+
+Suggested commit:
+
+```bash
+git add services/agent-8-crm/
+git diff --cached --stat
+git commit -m "Add Agent 8 CRM service runtime"
+```
+
+Suggested verification before commit:
+
+```bash
+pytest tests/*agent8* -q
+pytest tests/*crm* -q
+```
+
+Boundary:
+
+```text
+Agent 8 CRM runtime only.
+No uv.lock.
+No workspace files.
+No smoke screenshots.
+No host-admin scripts.
+No Agent 6/7/10 changes unless required by an Agent 8 test.
+```
+
+---
+
+## Commit 2: Agent 8 CRM API / route integration
+
+Only do this if there are route/API changes outside `services/agent-8-crm/`, for example:
+
+```text
+src/nexus/api/
+apps/recruiter-ui/
+src/nexus/skills/agent_08_command_center/
+```
+
+Suggested commit:
+
+```bash
+git add <specific Agent 8 API/UI files only>
+git diff --cached --stat
+git commit -m "Wire Agent 8 CRM service routes"
+```
+
+Verification:
+
+```bash
+pytest tests/*agent8* -q
+pytest tests/*crm* -q
+npm run build --prefix apps/recruiter-ui
+```
+
+Boundary:
+
+```text
+Agent 8 CRM route/API/UI wiring only.
+No unrelated frontend cleanup.
+No Agent 10 observer.
+No Agent 6 Gmail work.
+```
+
+---
+
+## Commit 3: Agent 8 tests / contract cleanup
+
+Only if tests were added or updated separately:
+
+```bash
+git add tests/*agent8* tests/*crm*
+git diff --cached --stat
+git commit -m "Add Agent 8 CRM contract tests"
+```
+
+Skip this if the tests belong naturally with Commit 1 or Commit 2.
+
+---
+
+## Keep parked
+
+```text
+uv.lock                         lockfile-only later
+scripts/remove-docker-desktop-sudo.sh  host-admin slice only
+workspace.code-workspace        already ignored / local
+smoke/playwright artifacts       excluded unless promoted to fixtures
+```
+
+## Best next move
+
+Start with this:
+
+```bash
+git diff --stat services/agent-8-crm/
+```
+
+If it is coherent, make the first commit:
+
+```text
+Add Agent 8 CRM service runtime
+```text
+
+### User
+
+Agent 8 already landed (small commits)
+Commit	Boundary
+... [51 more lines of text elided]
+```bash
+pytest tests/test_agent8_crm_*.py
+# 14 passed
+
+pytest services/agent-8-crm/tests/
+# 31 passed
+```text
+
+## Correct next action
+
+Do **not** bulk-add `services/agent-8-crm/`.
+
+... [12 more lines of text elided]
+```text
+No Agent 8 action needed unless new edits exist.
+```text
+
+The current Agent 8 slices are already on main, tested, and scoped.
+
+### User
+
+... [54 more lines of text elided]
+```text
+1. Leave both untracked
+2. Commit uv.lock only
+3. Commit remove-docker-desktop-sudo.sh only
+4. Push main when ready to publish the 71 local commits
+```text
+
+The only operational warning is the Agent 9 MCP gap in Cursor Composer. To restore Agent 9 writes there, launch the AI session through the established KeePassXC/Agent 9 environment path rather than a bare Composer session.
+
+### User
+
+... [35 more lines of text elided]
+```text
+three modified secret-manager docs/rules files
+```
+
+Those should not be mixed with Agent 8, `uv.lock`, or the host-admin script.
+
+## Clean next choices
+
+```text
+1. Commit/revert/leave the 3 secret-manager docs/rules files
+2. Commit uv.lock as lockfile-only
+3. Commit or ignore remove-docker-desktop-sudo.sh
+4. Push main when ready
+```text
+
+Best next slice is probably the three secret-manager docs/rules files, but only if they are intentional.
+
+### User
+
+... [47 more lines of text elided]
+```text
+KeePassXC shell env
+→ export-agent9-datacore-env.sh
+→ Agent 9 DB URL present
+→ Composer/Cursor launched from that environment
+```
+
+It only fixes MCP wiring once the environment exists.
+
+## Best next move
+
+Start with Slice A:
+
+```bash
+git add <three secret-manager docs/rules files>
+git diff --cached --stat
+git commit -m "Refine KeePassXC secret manager policy docs"
+```text
+
+Then handle Agent 9 MCP wiring as its own commit.
+
+### User
+
+... [50 more lines of text elided]
+```text
+Slice B: Agent 9 MCP wiring
+Slice C: review_history.py / review_history_api.py
+Slice 9A: draft_context_builder.py + test_slice9a_draft_context_static.py
+```text
+
+## Recommended next order
+
+1. **Slice B — Agent 9 MCP wiring**
+2. **Slice 9A — draft context builder**
+... [8 more lines of text elided]
+```text
+.mcp.json
+scripts/run-agent9-metadata-exchange-mcp.sh
+src/nexus/skills/agent_09_metadata_exchange/config.py
+```
+
+Suggested commit:
+
+```bash
+git add .mcp.json scripts/run-agent9-metadata-exchange-mcp.sh src/nexus/skills/agent_09_metadata_exchange/config.py
+git diff --cached --stat
+git commit -m "Wire Agent 9 metadata exchange MCP"
+```
+
+Key invariant stays unchanged:
+
+```text
+KeePassXC env must already be loaded before Composer/Cursor starts.
+Slice B improves MCP startup wiring; it does not replace the KeePassXC launch path.
+```text
+
+### User
+
+Good. Slice A is closed.
+
+... [48 more lines of text elided]
+```bash
+git add .mcp.json \
+  scripts/run-agent9-metadata-exchange-mcp.sh \
+  src/nexus/skills/agent_09_metadata_exchange/config.py
+```
+
+Review:
+
+```bash
+git diff --cached --stat
+git diff --cached
+```
+
+Commit:
+
+```bash
+git commit -m "Wire Agent 9 metadata exchange MCP"
+```
+
+## Do not include
+
+```text
+src/nexus/storage/review_history.py
+src/nexus/api/review_history_api.py
+src/nexus/api/draft_context_builder.py
+tests/test_slice9a_draft_context_static.py
+uv.lock
+scripts/remove-docker-desktop-sudo.sh
+```
+
+## Commit meaning
+
+`Slice B` should mean:
+
+```text
+Composer/Cursor can discover/start the Agent 9 metadata-exchange MCP server,
+but the required DB URL still comes from the parent KeePassXC-loaded shell.
+```
+
+That preserves the secret flow:
+
+```text
+KeePassXC → jarvis-secret → shell env → export-agent9-datacore-env.sh → Composer/Cursor → MCP server
+```text
+
+### User
+
+Slice B is already done — no second commit needed.
+
+... [57 more lines of text elided]
+```text id="km7ixm"
+KeePassXC → jarvis-secret → shell env → export-agent9-datacore-env.sh → Composer/Cursor → MCP server
+```text
+
+No DB URL was hardcoded into repo config. Good boundary.
+
+## Recommended next step
+
+... [8 more lines of text elided]
+```text id="kcmg3g"
+src/nexus/api/draft_context_builder.py
+tests/test_slice9a_draft_context_static.py
+```
+
+Suggested commit:
+
+```bash id="3rf658"
+git add src/nexus/api/draft_context_builder.py tests/test_slice9a_draft_context_static.py
+git diff --cached --stat
+git commit -m "Add draft context builder contract"
+```
+
+Keep out:
+
+```text id="vfp03c"
+src/nexus/storage/review_history.py
+src/nexus/api/review_history_api.py
+uv.lock
+scripts/remove-docker-desktop-sudo.sh
+```text
+
+### User
+
+Slice 9A closed at 5b90428.
+
+... [52 more lines of text elided]
+```text
+tests/test_slice9a_draft_context_static.py
+→ reads review_history.py / review_history_api.py
+→ passes locally only because Slice C is present unstaged
+```
+
+That means **do not push yet** unless Slice C lands next, or CI may fail on a clean checkout.
+
+## Best next move
+
+Commit Slice C immediately as the companion integration slice.
+
+### Slice C boundary
+
+Include only:
+
+```text
+src/nexus/storage/review_history.py
+src/nexus/api/review_history_api.py
+```
+
+Suggested commit:
+
+```bash
+git add src/nexus/storage/review_history.py src/nexus/api/review_history_api.py
+git diff --cached --stat
+git commit -m "Wire draft context review history contract"
+```
+
+Recommended verification after Slice C:
+
+```bash
+pytest tests/test_slice9a_draft_context_static.py -q
+pytest tests/test_agent8_crm_*.py -q
+```
+
+## Keep out
+
+```text
+uv.lock
+scripts/remove-docker-desktop-sudo.sh
+```text
+
+This should make `5b90428 + Slice C` clean as a pair.
+
+### User
+
+... [16 more lines of text elided]
+```text
+Slice C — review history integration
+```
+
+Then **2 optional cleanup slices**:
+
+```text
+Slice D — uv.lock lockfile-only
+Slice E — host-admin script
+```text
+
+Slice C should happen before pushing because `5b90428` has tests that depend on the unstaged `review_history.py` / `review_history_api.py` changes.
+
+### User
+
+... [12 more lines of text elided]
+```text
+src/nexus/storage/review_history.py
+src/nexus/api/review_history_api.py
+```
+
+### Commands
+
+```bash
+git add src/nexus/storage/review_history.py \
+  src/nexus/api/review_history_api.py
+
+git diff --cached --stat
+git diff --cached
+
+pytest tests/test_slice9a_draft_context_static.py -q
+pytest tests/test_agent8_crm_*.py -q
+
+git commit -m "Wire draft context review history contract"
+```
+
+---
+
+## Slice D — lockfile-only commit
+
+**Purpose:** only if `uv.lock` reflects intentional dependency resolution.
+
+### Include only
+
+```text
+uv.lock
+```
+
+### Commands
+
+```bash
+git add uv.lock
+
+git diff --cached --stat
+
+git commit -m "Update uv lockfile"
+```
+
+Do this only if the lockfile change is intentional.
+
+---
+
+## Slice E — host-admin utility
+
+**Purpose:** optional script for Docker Desktop sudo cleanup. Keep it separate because it is host-maintenance, not Nexus runtime logic.
+
+### Include only
+
+```text
+scripts/remove-docker-desktop-sudo.sh
+```
+
+### Commands
+
+```bash
+bash -n scripts/remove-docker-desktop-sudo.sh
+
+git add scripts/remove-docker-desktop-sudo.sh
+
+git diff --cached --stat
+git diff --cached
+
+git commit -m "Add Docker Desktop sudo cleanup utility"
+```
+
+---
+
+## Final check
+
+After those commits:
+
+```bash
+git status --short
+git log --oneline --decorate --max-count=12
+```
+
+Expected result:
+
+```text
+No unstaged/untracked work except anything intentionally left local.
+```
+
+## Priority order
+
+```text
+1. Slice C — required before push
+2. Slice D — optional
+3. Slice E — optional
+```text
+
+Do **Slice C first**. It is the only remaining slice that affects the correctness of the already-committed `5b90428` draft-context tests.
+
+### User
+
+... [10 more lines of text elided]
+```text
+5b90428 — Add draft context builder contract
+```
+
+But the test file in that commit checks for behavior that depends on these still-modified files:
+
+```text
+src/nexus/storage/review_history.py
+src/nexus/api/review_history_api.py
+```
+
+So right now:
+
+```text
+Your local tree passes
+because those review_history changes exist unstaged.
+
+A clean checkout of main may fail
+because 5b90428 is committed but Slice C is not.
+```text
+
+That is why I said **Slice C is required before push**.
+
+## Why not commit everything together?
+
+... [10 more lines of text elided]
+```text
+Fix draft context, update lockfile, add host script
+```
+
+That makes rollback harder later. For example, if `uv.lock` causes dependency trouble, you would not want to revert the draft-context API fix with it.
+
+## Simplest version
+
+You have **one important remaining commit**:
+
+```text
+Slice C — review_history.py + review_history_api.py
+```
+
+The other two are optional housekeeping:
+
+```text
+uv.lock
+remove-docker-desktop-sudo.sh
+```
+
+## What I would do
+
+Commit only Slice C now:
+
+```bash
+git add src/nexus/storage/review_history.py src/nexus/api/review_history_api.py
+git commit -m "Wire draft context review history contract"
+```text
+
+Then leave `uv.lock` and the host script alone unless you specifically want them tracked.
+
+### User
+
+... [87 more lines of text elided]
+```text
+scripts/run-agent9-metadata-exchange-mcp.sh
+src/nexus/skills/agent_09_metadata_exchange/mcp_server.py
+```
+
+## Recommended handling
+
+Treat them as a new **Agent 9 MCP follow-up slice** only if intentional.
+
+### First inspect
+
+```bash
+git diff -- scripts/run-agent9-metadata-exchange-mcp.sh \
+  src/nexus/skills/agent_09_metadata_exchange/mcp_server.py
+```
+
+### If accidental
+
+```bash
+git restore scripts/run-agent9-metadata-exchange-mcp.sh \
+  src/nexus/skills/agent_09_metadata_exchange/mcp_server.py
+```
+
+### If intentional
+
+Commit separately:
+
+```bash
+git add scripts/run-agent9-metadata-exchange-mcp.sh \
+  src/nexus/skills/agent_09_metadata_exchange/mcp_server.py
+
+git diff --cached --stat
+git commit -m "Harden Agent 9 metadata exchange MCP startup"
+```
+
+## Push rule
+
+Do not push until those two files are either reverted or committed. After that:
+
+```bash
+git status --short
+```text
+
+Should be clean or only show intentionally ignored/local files.
+
+### User
+
+... [21 more lines of text elided]
+```bash
+git status --short
+git status -sb
+```
+
+Expected:
+
+```text
+## main...origin/main
+```text
+
+with no local ahead count and no unexpected modified/untracked files.
+
+### User
+
+... [25 more lines of text elided]
+```text
+## main...origin/main
+```
+
+No repo action needed. This is a good baseline before starting the next feature or runtime smoke test.
+--------------------------------------------------------------------------------
