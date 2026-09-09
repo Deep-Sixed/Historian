@@ -24,9 +24,12 @@ from historian.sources import RagV1SourceReader, SourceRegistry
 
 pytestmark = pytest.mark.pg
 
-CORPUS = Path("/mnt/jarvis-data/projects/chatgpt-export/corpus")
+CORPUS = Path(os.environ.get(
+    "HISTORIAN_CORPUS",
+    "/mnt/jarvis-data/projects/chatgpt-export/corpus",
+))
 SECRET = Path("/mnt/jarvis-data/projects/EVECOR/bin/jarvis-secret")
-DOC = "2026-07-08-decommissioning-hindsight-memory"
+DOC = os.environ.get("HISTORIAN_TEST_DOC", "2026-07-08-decommissioning-hindsight-memory")
 RUN = uuid.uuid4().hex[:8]
 rid = lambda n: f"{n}-{RUN}"
 
@@ -94,6 +97,8 @@ class PgEvidence:
 @pytest.fixture(scope="module")
 def reader():
     if not CORPUS.is_dir():
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail(f"RAG v1 corpus unavailable: {CORPUS}")
         pytest.skip("RAG v1 corpus unavailable")
     return RagV1SourceReader(CORPUS)
 
