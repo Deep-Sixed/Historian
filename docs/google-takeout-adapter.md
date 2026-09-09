@@ -2,8 +2,8 @@
 
 Google Takeout is an export family, not a single evidence format. A future
 `GoogleTakeoutAdapter` should provide shared archive handling only where the contract is
-actually common: source root containment, member enumeration, version hashing and
-source-system isolation.
+actually common: source root containment, member enumeration, source-instance identity,
+version hashing and source-system isolation.
 
 Product-specific adapters own product-specific semantics:
 
@@ -20,8 +20,10 @@ GoogleTakeoutAdapter
 - Treat the declared Takeout export root or archive as the only readable source root.
 - Reject absolute paths, parent traversal and archive member names that resolve outside the
   declared root.
-- Version records by content hash or by a deterministic digest over the exact bytes and
-  source-owned metadata required to interpret them.
+- Produce an opaque `source_instance_id` for the account or export lineage without
+  requiring email addresses or other PII in the durable identifier.
+- Version records with lowercase SHA-256 digests over source bytes plus any
+  interpretation-critical metadata.
 - Keep adapter identity in the `source_system` value so Google Takeout material cannot be
   verified through a ChatGPT export adapter or a local corpus reader.
 - Use synthetic Takeout fixtures in CI.
@@ -45,8 +47,14 @@ without assuming that every note is plain text.
 
 A `ChatGPTExportAdapter` should be a sibling of `GoogleTakeoutAdapter`, not a Takeout
 sub-adapter. ChatGPT exports may arrive as archives and JSON, but that does not make them
-Google Takeout. Conversation identity, message coordinates, attachment handling and export
-versioning are separate source semantics.
+Google Takeout. Conversation identity, message coordinates, attachment handling, export
+versioning and source-instance identity are separate source semantics.
+
+## Evidence Boundary
+
+Takeout adapters produce `EvidenceLocator` objects after verification. They do not write
+directly to the current enum-bound `EvidenceRef` shape unless a later schema design makes
+that mapping lossless.
 
 ## Parser Deferral
 
