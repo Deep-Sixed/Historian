@@ -7,15 +7,19 @@ on:
 
 jobs:
   core:
-    name: Python/core tests
+    name: Python/core tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14.5"]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14.5"
+          python-version: ${{ matrix.python-version }}
       - name: Install test dependencies
         run: python -m pip install -e ".[dev]"
       - name: Run core/static gate
@@ -49,6 +53,8 @@ jobs:
       HISTORIAN_PGHOST: 127.0.0.1
       HISTORIAN_PGPORT: "5444"
       HISTORIAN_PGDATABASE: evecor_historian
+      HISTORIAN_CORPUS: /tmp/historian-synthetic-corpus
+      HISTORIAN_TEST_DOC: 2026-07-08-decommissioning-redacted-memory
       HISTORIAN_OWNER: historian_owner_ci
       HISTORIAN_EXTRACTOR: historian_extractor_ci
       HISTORIAN_EVIDENCE_VERIFIER: historian_evidence_verifier_ci
@@ -75,12 +81,10 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Build frozen baseline database and apply migration
         run: scripts/ci-setup-postgres.sh
+      - name: Create synthetic verifier corpus
+        run: scripts/ci-create-synthetic-corpus.sh
       - name: Run PostgreSQL gate
-        run: >
-          python -m pytest -q
-          tests/test_pg_roles.py
-          tests/test_adjudicator_persistence.py
-          --run-pg
+        run: python -m pytest -q -m pg --run-pg
 
   corpus-canary:
     name: Corpus canary
@@ -96,4 +100,15 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -e ".[dev]"
       - name: Run corpus canary when corpus is available
-        run: python -m pytest -q -m canary --run-corpus
+        run: |
+          corpus="/example/corpus"
+          if [ ! -d "$corpus" ]; then
+            echo "Corpus canary: NOT RUN - real Historian corpus is not available on this runner" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if python -m pytest -q -m canary --run-corpus; then
+            echo "Corpus canary: PASS" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Corpus canary: FAIL" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

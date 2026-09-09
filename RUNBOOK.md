@@ -68,7 +68,7 @@ Vault backup taken before the write:
     python3 -m pytest -q -m "not pg and not canary"
         # Python/core + static schema contract only
 
-    python3 -m pytest -q tests/test_pg_roles.py tests/test_adjudicator_persistence.py --run-pg
+    python3 -m pytest -q -m pg --run-pg
         # PostgreSQL security/invariant gate; fails if :5444 or credentials are unavailable
 
     python3 -m pytest -q -m canary --run-corpus
