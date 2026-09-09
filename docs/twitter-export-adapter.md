@@ -22,12 +22,14 @@ rejected before source records are accepted.
 
 PR #4 intentionally covers only the first archive slice:
 
-- `data/manifest.js`: validates that the archive metadata member is present and parseable
+- `data/manifest.js`: validates that the archive metadata member is present and parseable,
+  and cross-checks stable account identity when present
 - `data/account.js`: derives deterministic opaque `source_instance_id` from a stable
   account id
 - `data/tweets.js`: enumerates tweet records
 - `data/tweet-headers.js`: optionally joins header metadata into each tweet record version
-- `data/tweets_media/`: verifies referenced tweet media members when tweets cite them
+- `data/tweets_media/`: binds archived tweet media members by tweet-id filename prefix when
+  Twitter media entities are present
 
 Likes, direct messages, followers, following, lists, Grok history and the rest of the
 archive families are out of scope for this PR.
@@ -54,18 +56,23 @@ The record `version_hash` is the SHA-256 digest of canonical JSON bytes containi
 family
 tweet
 tweet_header
+tweet_media
 ```
 
-That means tweet-header changes are version changes rather than silent metadata drift.
+That means tweet-header or archived tweet-media changes are version changes rather than
+silent metadata drift.
 
 ## Coordinates
 
 The adapter supports:
 
 - `BYTE_RANGE` over the canonical tweet JSON record bytes
-- `JSON_POINTER` anchors for exact field locations inside the canonical record
+- `JSON_POINTER` paths for exact fields inside the canonical record
 
 `BYTE_RANGE` follows the Source Adapter v1 rule: zero-based and half-open `[start, end)`.
+`JSON_POINTER` stores only the logical JSON path. The record `version_hash` protects the
+record bytes, avoiding ambiguous byte anchors when identical values occur in multiple JSON
+fields.
 
 ## Failure Behavior
 
@@ -74,7 +81,9 @@ The adapter fails closed with typed `SourceFailure` values for:
 - missing archive roots
 - missing stable account identity unless `source_instance_id` is explicitly supplied
 - malformed archive data wrappers
+- unexpected JavaScript assignment names for known archive members
 - malformed JSON
+- manifest/account identity mismatch
 - duplicate tweet ids
 - duplicate tweet-header ids
 - missing tweet ids
@@ -83,8 +92,8 @@ The adapter fails closed with typed `SourceFailure` values for:
 - changed source versions
 - unsupported coordinates
 - byte ranges outside the canonical record
-- JSON pointer anchors that moved
-- missing referenced tweet media
+- invalid JSON pointer paths
+- missing archived tweet media for tweets that declare media entities
 - archive member escape
 - duplicate zip member names
 
