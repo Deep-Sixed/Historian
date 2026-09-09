@@ -51,6 +51,7 @@ class TwitterExportAdapter:
         self._root = Path(export_root).resolve()
         if source_instance_id is not None and not source_instance_id:
             raise ValueError("source_instance_id cannot be empty")
+        self._source_instance_id_overridden = source_instance_id is not None
         self.source_instance_id = source_instance_id or self._derive_source_instance_id()
         self._records: dict[str, bytes] | None = None
 
@@ -180,7 +181,7 @@ class TwitterExportAdapter:
             )
         content = self._records[pointer.record_id]
         path = parts["path"]
-        if not path.startswith("/"):
+        if path != "" and not path.startswith("/"):
             return SourceFailure(SourceFailureCode.INVALID_POINTER, "JSON pointer must be absolute")
         try:
             self._resolve_json_pointer(json.loads(content), path)
@@ -190,7 +191,7 @@ class TwitterExportAdapter:
 
     def _ensure_records(self) -> SourceFailure | None:
         try:
-            self._load_archive_manifest()
+            self._validate_current_source_identity()
             media_index = self._media_index()
             tweets = self._load_ytd_array("data/tweets.js")
             headers = self._tweet_headers_by_id()
@@ -251,6 +252,26 @@ class TwitterExportAdapter:
         if manifest_account_id and manifest_account_id != account_id:
             raise ValueError("manifest.js account id does not match account.js")
         return sha256_bytes(b"TWITTER_EXPORT_ACCOUNT\0" + account_id.encode("utf-8"))
+
+    def _validate_current_source_identity(self) -> None:
+        manifest = self._load_archive_manifest()
+        manifest_account_id = self._manifest_account_id(manifest)
+        account_id = None
+        try:
+            account_id = self._account_id(self._load_ytd_array("data/account.js"))
+        except (FileNotFoundError, KeyError):
+            if not self._source_instance_id_overridden:
+                raise
+
+        if manifest_account_id and account_id and manifest_account_id != account_id:
+            raise ValueError("manifest.js account id does not match account.js")
+        if self._source_instance_id_overridden:
+            return
+        if not account_id:
+            raise ValueError("account.js does not contain a stable account id")
+        expected = sha256_bytes(b"TWITTER_EXPORT_ACCOUNT\0" + account_id.encode("utf-8"))
+        if expected != self.source_instance_id:
+            raise ValueError("source instance identity changed")
 
     def _load_archive_manifest(self) -> Any:
         return self._load_ytd_payload("data/manifest.js")
@@ -428,16 +449,40 @@ class TwitterExportAdapter:
                 yield from self._values_for_key(item, key)
 
     def _resolve_json_pointer(self, value: Any, path: str) -> Any:
+        if path == "":
+            return value
+        if not path.startswith("/"):
+            raise ValueError("JSON pointer must be absolute")
         current = value
-        for raw_part in path.strip("/").split("/"):
-            part = raw_part.replace("~1", "/").replace("~0", "~")
+        for raw_part in path[1:].split("/"):
+            part = self._decode_json_pointer_token(raw_part)
             if isinstance(current, dict):
                 current = current[part]
             elif isinstance(current, list):
-                current = current[int(part)]
+                if not part or not all("0" <= char <= "9" for char in part):
+                    raise ValueError("JSON pointer array index must be a non-negative decimal")
+                index = int(part)
+                if index >= len(current):
+                    raise ValueError("JSON pointer array index is out of range")
+                current = current[index]
             else:
                 raise TypeError("JSON pointer descends through a scalar")
         return current
+
+    def _decode_json_pointer_token(self, token: str) -> str:
+        decoded = []
+        index = 0
+        while index < len(token):
+            char = token[index]
+            if char != "~":
+                decoded.append(char)
+                index += 1
+                continue
+            if index + 1 >= len(token) or token[index + 1] not in {"0", "1"}:
+                raise ValueError("JSON pointer token contains an invalid escape")
+            decoded.append("~" if token[index + 1] == "0" else "/")
+            index += 2
+        return "".join(decoded)
 
     def _display_name(self, content: bytes) -> str | None:
         parsed = json.loads(content)
