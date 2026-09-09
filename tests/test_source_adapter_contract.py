@@ -113,6 +113,38 @@ def test_source_coordinate_supports_non_linear_adapter_owned_selectors():
     assert pointer.coordinate.coordinate_system == "ICAL_PROPERTY"
 
 
+def test_source_coordinate_rejects_duplicate_part_names():
+    with pytest.raises(ValueError, match="duplicate coordinate part"):
+        SourceCoordinate(
+            "BYTE_RANGE",
+            (
+                CoordinatePart("start", "0"),
+                CoordinatePart("start", "5"),
+                CoordinatePart("end", "10"),
+            ),
+        )
+
+
+def test_source_coordinate_parts_are_canonicalized_by_name():
+    first = SourceCoordinate(
+        "BYTE_RANGE",
+        (CoordinatePart("start", "0"), CoordinatePart("end", "10")),
+    )
+    second = SourceCoordinate(
+        "BYTE_RANGE",
+        (CoordinatePart("end", "10"), CoordinatePart("start", "0")),
+    )
+    assert first == second
+    assert tuple(part.name for part in first.parts) == ("end", "start")
+
+
+def test_byte_range_is_zero_based_and_end_exclusive():
+    adapter = MemoryAdapter(records={"record-1": b"abcdef"})
+    result = adapter.verify(ptr(adapter, start=0, end=5))
+    assert result.ok is True
+    assert result.source.content == b"abcde"
+
+
 def test_source_record_requires_stable_identity_instance_and_version():
     rec = SourceRecord("GOOGLE_TAKEOUT_GMAIL", "acct-fp", "message-1", "0" * 64)
     assert rec.source_instance_id == "acct-fp"
@@ -156,6 +188,13 @@ def test_normalized_intake_is_derived_from_evidence_locator():
     intake = NormalizedIntakeRecord.from_text(locator, "normalized text")
     assert intake.locator is locator
     assert intake.normalized_hash != intake.locator.content_hash
+
+
+def test_verification_result_rejects_malformed_success_and_failure_values():
+    with pytest.raises(TypeError, match="source"):
+        SourceVerificationResult(source="not verified source material")
+    with pytest.raises(TypeError, match="failure"):
+        SourceVerificationResult(failure="not a source failure")
 
 
 def test_memory_adapter_is_idempotent_for_repeated_imports():
