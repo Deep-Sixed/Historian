@@ -15,21 +15,25 @@ The adapter supports:
 - a zip archive
 
 It reads data members in place and does not execute JavaScript or extract archives to disk.
-Archive members with absolute paths or parent traversal are rejected before source records
-are accepted.
+Archive members with absolute paths, parent traversal or duplicate normalized names are
+rejected before source records are accepted.
 
 ## Initial Coverage
 
 PR #4 intentionally covers only the first archive slice:
 
 - `data/manifest.js`: validates that the archive metadata member is present and parseable
-- `data/account.js`: derives deterministic opaque `source_instance_id`
+- `data/account.js`: derives deterministic opaque `source_instance_id` from a stable
+  account id
 - `data/tweets.js`: enumerates tweet records
 - `data/tweet-headers.js`: optionally joins header metadata into each tweet record version
 - `data/tweets_media/`: verifies referenced tweet media members when tweets cite them
 
 Likes, direct messages, followers, following, lists, Grok history and the rest of the
 archive families are out of scope for this PR.
+
+If a stable account id is unavailable, callers must provide `source_instance_id`
+explicitly. The adapter does not manufacture source lineage from a local filesystem path.
 
 ## Record Model
 
@@ -68,6 +72,7 @@ The adapter supports:
 The adapter fails closed with typed `SourceFailure` values for:
 
 - missing archive roots
+- missing stable account identity unless `source_instance_id` is explicitly supplied
 - malformed archive data wrappers
 - malformed JSON
 - duplicate tweet ids
@@ -81,5 +86,13 @@ The adapter fails closed with typed `SourceFailure` values for:
 - JSON pointer anchors that moved
 - missing referenced tweet media
 - archive member escape
+- duplicate zip member names
 
-It does not write to PostgreSQL and does not create `EvidenceRef` rows.
+Record enumeration raises `SourceEnumerationError` with a typed `SourceFailure` rather
+than returning an empty iterator for malformed or unavailable exports. A valid export with
+zero tweets still enumerates as empty.
+
+Verification re-reads the current archive data before trusting a pointer, so mutation
+after pointer creation fails closed instead of validating against stale cached bytes.
+
+The adapter does not write to PostgreSQL and does not create `EvidenceRef` rows.
