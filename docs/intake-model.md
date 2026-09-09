@@ -1,23 +1,47 @@
 # Intake Model
 
 Historian intake separates source-specific reading from provenance-bound qualification.
-Adapters turn external material into verified source bytes and normalized intake records.
-Historian then turns normalized records into evidence candidates and later verified
-evidence references.
+Adapters turn external material into verified source bytes and evidence locators.
+Historian can then use normalized records to produce evidence candidates and later
+verified evidence references.
+
+## Source Identity
+
+Durable source identity has four parts:
+
+- `source_system`: the adapter family, such as `CHATGPT_EXPORT` or
+  `GOOGLE_TAKEOUT_GMAIL`.
+- `source_instance_id`: the source collection, account or export lineage. This should be a
+  deterministic opaque identifier or fingerprint when the natural label would expose PII.
+- `record_id`: the stable logical record identity inside that source instance.
+- `version_hash`: a lowercase SHA-256 hex digest for the immutable record version.
+
+This prevents collisions between Google Account A and Google Account B, or between two
+independent ChatGPT exports with overlapping local record identifiers.
 
 ## Source Pointer
 
-A `SourcePointer` names:
+A `SourcePointer` names exact material within one record version:
 
-- `source_system`: the adapter-owned source family, such as a future ChatGPT export adapter
-  or Google Takeout product adapter.
-- `record_id`: the stable logical record identity inside that source system.
-- `version_hash`: the content-addressed immutable version of that record.
-- `coordinate_system`: the adapter-owned addressing scheme for the cited material.
-- `start` and `end`: exact coordinates within that scheme.
+- source system
+- source instance
+- record id
+- version hash
+- source coordinate
 
-The pointer is not a path. It is not trusted because it exists. It becomes useful only when
-the adapter that owns `source_system` verifies it against source bytes.
+The pointer is not a path and is not trusted because it exists. It becomes useful only
+when the adapter that owns `source_system` verifies it against source bytes.
+
+## Source Coordinate
+
+A `SourceCoordinate` is adapter-owned and structured as:
+
+- `coordinate_system`
+- named coordinate parts
+
+`BYTE_RANGE` is the canonical simple case. Non-linear sources may use product-specific
+coordinate systems such as `MESSAGE_PART`, `JSON_POINTER`, `ICAL_PROPERTY`, `ATTACHMENT`
+or `FIELD`.
 
 ## Source Record
 
@@ -26,17 +50,38 @@ logical external item that can be imported idempotently. For different adapters,
 mean a conversation, message, email, drive object, calendar event, note or another
 source-owned unit.
 
-Repeated imports of the same export should resolve to the same `record_id` and
-`version_hash`. If a mutable source changes, the adapter must produce a different
-`version_hash`.
+Repeated imports of the same export should resolve to the same source identity and version
+hash. If a mutable source changes, the adapter must produce a different version hash.
 
 ## Verified Source
 
-A `VerifiedSource` binds a pointer to bytes and a hash of those bytes. Verification is
-adapter-owned because only the adapter knows whether a pointer is valid for its source.
+A `VerifiedSource` binds a pointer to bytes and a SHA-256 hash of those bytes.
+Verification is adapter-owned because only the adapter knows whether a pointer is valid
+for its source.
 
-If verification cannot establish source identity, version and coordinates, it returns no
-verified source. It must not return best-effort content.
+If verification cannot establish source system, source instance, record, version and
+coordinates, it returns a typed failure. It must not return best-effort content.
+
+## Evidence Locator
+
+An `EvidenceLocator` is the normalized provenance bridge between adapter intake and
+Historian evidence. It carries open-ended source provenance:
+
+```text
+source_system
+source_instance_id
+record_id
+version_hash
+coordinate
+content_hash
+material_state
+redaction_ref
+```
+
+The current `EvidenceRef` and database schema are limited to `RAG_V1`, `LEDGER`, `OTHER`
+and `LINE` spans. New adapters must not be collapsed into `OTHER` just to fit that shape.
+A later persistence PR can store locators directly or expand the evidence schema. This PR
+only freezes the design contract.
 
 ## Normalized Intake Record
 
@@ -45,13 +90,13 @@ generation. It carries a hash of the normalized text, but that hash does not rep
 source hash.
 
 Normalized text has no independent authority. Evidence remains tied back to the
-`VerifiedSource` and its pointer.
+`EvidenceLocator` and the verified source bytes behind it.
 
 ## Evidence Candidate Boundary
 
 An evidence candidate may be model-produced or otherwise extracted, but it must cite the
-source pointer it claims to come from. A later verifier must re-read the source through the
-declared adapter before creating an `EvidenceRef`.
+locator it claims to come from. A later verifier must re-read the source through the
+declared adapter before creating a trusted evidence reference.
 
 That preserves the existing Historian rule: proposals do not become authority merely
 because they are well formed.
