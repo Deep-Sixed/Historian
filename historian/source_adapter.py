@@ -94,12 +94,20 @@ class SourceCoordinate:
         _required(self.coordinate_system, "SourceCoordinate.coordinate_system")
         if not self.parts:
             raise ValueError("SourceCoordinate.parts is required")
+        names = set()
         for part in self.parts:
             if not isinstance(part, CoordinatePart):
                 raise TypeError("SourceCoordinate.parts must contain CoordinatePart values")
+            if part.name in names:
+                raise ValueError(f"duplicate coordinate part {part.name!r}")
+            names.add(part.name)
+        canonical = tuple(sorted(self.parts, key=lambda p: p.name))
+        if self.parts != canonical:
+            object.__setattr__(self, "parts", canonical)
 
     @classmethod
     def byte_range(cls, start: int, end: int) -> "SourceCoordinate":
+        """Zero-based half-open byte range: [start, end)."""
         if start < 0 or end < start:
             raise ValueError(f"invalid byte span {start}..{end}")
         return cls(
@@ -201,6 +209,10 @@ class SourceVerificationResult:
     def __post_init__(self) -> None:
         if (self.source is None) == (self.failure is None):
             raise ValueError("SourceVerificationResult requires exactly one of source or failure")
+        if self.source is not None and not isinstance(self.source, VerifiedSource):
+            raise TypeError("SourceVerificationResult.source must be a VerifiedSource")
+        if self.failure is not None and not isinstance(self.failure, SourceFailure):
+            raise TypeError("SourceVerificationResult.failure must be a SourceFailure")
 
     @classmethod
     def verified(cls, source: VerifiedSource) -> "SourceVerificationResult":

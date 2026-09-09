@@ -107,9 +107,11 @@ It does not replace `version_hash`.
 
 Coordinates are adapter-owned structures, not always linear spans. `SourceCoordinate`
 carries a `coordinate_system` name and named coordinate parts. `BYTE_RANGE` is available
-as a canonical simple case, but adapters may define coordinates such as `MESSAGE_PART`,
-`JSON_POINTER`, `ICAL_PROPERTY`, `ATTACHMENT` or `FIELD` without changing Historian's
-core contract.
+as a canonical simple case. It is zero-based and half-open: `[start, end)`, so `start=0`
+and `end=5` identifies bytes 0 through 4. Coordinate parts are canonicalized by name and
+duplicate part names are invalid, so equivalent coordinates have one durable
+representation. Adapters may define coordinates such as `MESSAGE_PART`, `JSON_POINTER`,
+`ICAL_PROPERTY`, `ATTACHMENT` or `FIELD` without changing Historian's core contract.
 
 ## Adapter Families
 

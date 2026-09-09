@@ -43,6 +43,10 @@ A `SourceCoordinate` is adapter-owned and structured as:
 coordinate systems such as `MESSAGE_PART`, `JSON_POINTER`, `ICAL_PROPERTY`, `ATTACHMENT`
 or `FIELD`.
 
+`BYTE_RANGE` is zero-based and half-open: `[start, end)`. Coordinate parts are
+canonicalized by name, and duplicate part names are rejected. This keeps durable
+provenance from depending on tuple ordering or last-write-wins parsing.
+
 ## Source Record
 
 A `SourceRecord` is what an adapter enumerates before extraction. It is the smallest
