@@ -10,6 +10,7 @@ somewhere" is not fail-closed; "nothing was written" is.
 """
 
 import hashlib
+import os
 import subprocess
 import uuid
 from pathlib import Path
@@ -21,6 +22,8 @@ psycopg = pytest.importorskip("psycopg")
 from historian.capability import EvidenceVerificationError, EvidenceVerifier
 from historian.sources import RagV1SourceReader, SourceRegistry
 
+pytestmark = pytest.mark.pg
+
 CORPUS = Path("/example/corpus")
 SECRET = Path("/example/corpus")
 DOC = "2026-07-08-decommissioning-redacted-memory"
@@ -29,18 +32,32 @@ rid = lambda n: f"{n}-{RUN}"
 
 
 def _secret(name):
+    if val := os.environ.get(name):
+        return val
     if not SECRET.exists():
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail("redacted-secret unavailable and no environment credential supplied")
         pytest.skip("redacted-secret unavailable")
     r = subprocess.run([str(SECRET), "get", name], capture_output=True, text=True,
                        timeout=120)
     if r.returncode != 0 or not r.stdout.strip():
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail(f"credential {name} unavailable")
         pytest.skip(f"vault entry {name} unavailable")
     return r.stdout.strip()
 
 
 def conn(role, entry):
-    return psycopg.connect(f"host=127.0.0.1 port=5444 dbname=evecor_historian "
-                           f"user={role} password={_secret(entry)}", autocommit=True)
+    return psycopg.connect(
+        " ".join([
+            f"host={os.environ.get('HISTORIAN_PGHOST', '127.0.0.1')}",
+            f"port={os.environ.get('HISTORIAN_PGPORT', '5444')}",
+            f"dbname={os.environ.get('HISTORIAN_PGDATABASE', 'evecor_historian')}",
+            f"user={role}",
+            f"password={_secret(entry)}",
+        ]),
+        autocommit=True,
+    )
 
 
 class Candidate:
