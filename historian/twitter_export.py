@@ -22,6 +22,14 @@ from historian.source_adapter import (
 )
 
 
+class SourceEnumerationError(RuntimeError):
+    """Enumeration failed closed instead of pretending the export is empty."""
+
+    def __init__(self, failure: SourceFailure):
+        self.failure = failure
+        super().__init__(f"{failure.code.value}: {failure.detail}")
+
+
 class TwitterExportAdapter:
     """Reads tweet records from a full X/Twitter account archive.
 
@@ -38,11 +46,10 @@ class TwitterExportAdapter:
             raise ValueError("source_instance_id cannot be empty")
         self.source_instance_id = source_instance_id or self._derive_source_instance_id()
         self._records: dict[str, bytes] | None = None
-        self._load_failure: SourceFailure | None = None
 
     def enumerate_records(self):
-        if self._ensure_records():
-            return iter(())
+        if failure := self._ensure_records():
+            raise SourceEnumerationError(failure)
         records = [
             SourceRecord(
                 self.source_system,
@@ -193,54 +200,41 @@ class TwitterExportAdapter:
         return None
 
     def _ensure_records(self) -> SourceFailure | None:
-        if self._records is not None:
-            return None
-        if self._load_failure is not None:
-            return self._load_failure
-
         try:
             self._load_archive_manifest()
             tweets = self._load_ytd_array("data/tweets.js")
             headers = self._tweet_headers_by_id()
         except KeyError as exc:
-            self._load_failure = SourceFailure(SourceFailureCode.MALFORMED_SOURCE, str(exc))
-            return self._load_failure
+            return SourceFailure(SourceFailureCode.MALFORMED_SOURCE, str(exc))
         except (BadZipFile, OSError) as exc:
-            self._load_failure = SourceFailure(SourceFailureCode.UNAVAILABLE, str(exc))
-            return self._load_failure
+            return SourceFailure(SourceFailureCode.UNAVAILABLE, str(exc))
         except json.JSONDecodeError as exc:
-            self._load_failure = SourceFailure(SourceFailureCode.MALFORMED_SOURCE, str(exc))
-            return self._load_failure
+            return SourceFailure(SourceFailureCode.MALFORMED_SOURCE, str(exc))
         except ValueError as exc:
-            self._load_failure = SourceFailure(SourceFailureCode.INTEGRITY_FAILURE, str(exc))
-            return self._load_failure
+            return SourceFailure(SourceFailureCode.INTEGRITY_FAILURE, str(exc))
 
         records = {}
         for index, item in enumerate(tweets):
             tweet = item.get("tweet") if isinstance(item, dict) else None
             if not isinstance(tweet, dict):
-                self._load_failure = SourceFailure(
+                return SourceFailure(
                     SourceFailureCode.MALFORMED_SOURCE,
                     f"tweet item {index} has no tweet object",
                 )
-                return self._load_failure
             tweet_id = self._tweet_id(tweet)
             if not tweet_id:
-                self._load_failure = SourceFailure(
+                return SourceFailure(
                     SourceFailureCode.MALFORMED_SOURCE,
                     f"tweet item {index} has no stable id",
                 )
-                return self._load_failure
             record_id = f"tweet:{tweet_id}"
             if record_id in records:
-                self._load_failure = SourceFailure(
+                return SourceFailure(
                     SourceFailureCode.INTEGRITY_FAILURE,
                     f"duplicate tweet id {tweet_id!r}",
                 )
-                return self._load_failure
             if failure := self._validate_media_references(tweet):
-                self._load_failure = failure
-                return self._load_failure
+                return failure
             records[record_id] = self._canonical_bytes({
                 "family": "tweet",
                 "tweet": tweet,
@@ -253,10 +247,14 @@ class TwitterExportAdapter:
     def _derive_source_instance_id(self) -> str:
         try:
             account = self._load_ytd_array("data/account.js")
-            identity = self._canonical_bytes(account)
-        except (BadZipFile, KeyError, OSError, ValueError, json.JSONDecodeError):
-            identity = str(self._root).encode("utf-8")
-        return sha256_bytes(b"TWITTER_EXPORT\0" + identity)
+            account_id = self._account_id(account)
+        except (BadZipFile, KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                "source_instance_id override required when account identity is unavailable"
+            ) from exc
+        if not account_id:
+            raise ValueError("account.js does not contain a stable account id")
+        return sha256_bytes(b"TWITTER_EXPORT_ACCOUNT\0" + account_id.encode("utf-8"))
 
     def _load_archive_manifest(self) -> Any:
         return self._load_ytd_payload("data/manifest.js")
@@ -308,8 +306,13 @@ class TwitterExportAdapter:
         raise OSError(f"export root does not exist: {self._root}")
 
     def _validate_zip_members(self, archive: ZipFile) -> None:
+        seen = set()
         for info in archive.infolist():
             self._validate_member_name(info.filename)
+            normalized = posixpath.normpath(info.filename)
+            if normalized in seen:
+                raise ValueError(f"duplicate archive member: {normalized!r}")
+            seen.add(normalized)
 
     def _validate_member_name(self, member_name: str) -> None:
         normalized = posixpath.normpath(member_name)
@@ -354,6 +357,17 @@ class TwitterExportAdapter:
                 return value
         return None
 
+    def _account_id(self, account_items: list) -> str | None:
+        for item in account_items:
+            account = item.get("account") if isinstance(item, dict) else None
+            if not isinstance(account, dict):
+                continue
+            for key in ("accountId", "id", "userId"):
+                value = account.get(key)
+                if isinstance(value, str) and value:
+                    return value
+        return None
+
     def _resolve_json_pointer(self, value: Any, path: str) -> Any:
         current = value
         for raw_part in path.strip("/").split("/"):
@@ -382,4 +396,4 @@ class TwitterExportAdapter:
         ).encode("utf-8")
 
 
-__all__ = ["TwitterExportAdapter"]
+__all__ = ["SourceEnumerationError", "TwitterExportAdapter"]

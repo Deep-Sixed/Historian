@@ -15,7 +15,7 @@ from historian.source_adapter import (
     VerifiedSource,
     sha256_bytes,
 )
-from historian.twitter_export import TwitterExportAdapter
+from historian.twitter_export import SourceEnumerationError, TwitterExportAdapter
 
 
 def js_assignment(name, payload):
@@ -38,15 +38,18 @@ def write_export(root, *, tweets=None, headers=None, account=None, manifest=None
     data.mkdir(parents=True)
     (root / "Your archive.html").write_text("<html></html>", encoding="utf-8")
     (data / "manifest.js").write_text(
-        js_assignment("manifest", manifest or {"archiveInfo": {"createdAt": "2026-09-04"}}),
+        js_assignment(
+            "manifest",
+            {"archiveInfo": {"createdAt": "2026-09-04"}} if manifest is None else manifest,
+        ),
         encoding="utf-8",
     )
     (data / "account.js").write_text(
-        js_assignment("account", account or [{"account": {"accountId": "acct-1"}}]),
+        js_assignment("account", [{"account": {"accountId": "acct-1"}}] if account is None else account),
         encoding="utf-8",
     )
     (data / "tweets.js").write_text(
-        js_assignment("tweets", tweets or [tweet()]),
+        js_assignment("tweets", [tweet()] if tweets is None else tweets),
         encoding="utf-8",
     )
     if headers is not None:
@@ -67,13 +70,16 @@ def write_zip_export(path, *, tweets=None, headers=None, account=None, manifest=
         archive.writestr("Your archive.html", "<html></html>")
         archive.writestr(
             "data/manifest.js",
-            js_assignment("manifest", manifest or {"archiveInfo": {"createdAt": "2026-09-04"}}),
+            js_assignment(
+                "manifest",
+                {"archiveInfo": {"createdAt": "2026-09-04"}} if manifest is None else manifest,
+            ),
         )
         archive.writestr(
             "data/account.js",
-            js_assignment("account", account or [{"account": {"accountId": "acct-1"}}]),
+            js_assignment("account", [{"account": {"accountId": "acct-1"}}] if account is None else account),
         )
-        archive.writestr("data/tweets.js", js_assignment("tweets", tweets or [tweet()]))
+        archive.writestr("data/tweets.js", js_assignment("tweets", [tweet()] if tweets is None else tweets))
         if headers is not None:
             archive.writestr("data/tweet-headers.js", js_assignment("tweet_headers", headers))
         for name, content in (media or {}).items():
@@ -105,8 +111,12 @@ def test_enumerates_stable_tweet_records(tmp_path):
 
 
 def test_source_instance_id_is_deterministic_from_account_data(tmp_path):
-    first = TwitterExportAdapter(write_export(tmp_path / "first"))
-    second = TwitterExportAdapter(write_export(tmp_path / "second"))
+    first = TwitterExportAdapter(
+        write_export(tmp_path / "first", account=[{"account": {"accountId": "acct-1", "name": "A"}}])
+    )
+    second = TwitterExportAdapter(
+        write_export(tmp_path / "second", account=[{"account": {"accountId": "acct-1", "name": "B"}}])
+    )
     other = TwitterExportAdapter(
         write_export(tmp_path / "other", account=[{"account": {"accountId": "acct-2"}}])
     )
@@ -121,6 +131,22 @@ def test_explicit_source_instance_id_is_supported_and_empty_is_rejected(tmp_path
     assert TwitterExportAdapter(export, source_instance_id="instance-1").source_instance_id == "instance-1"
     with pytest.raises(ValueError, match="source_instance_id"):
         TwitterExportAdapter(export, source_instance_id="")
+
+
+def test_missing_or_unstable_account_identity_requires_explicit_override(tmp_path):
+    missing = tmp_path / "missing"
+    unstable = write_export(tmp_path / "unstable", account=[{"account": {"screenName": "name"}}])
+    malformed = write_export(tmp_path / "malformed")
+    (malformed / "data" / "account.js").write_text("window.YTD.account.part0 = {bad", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="source_instance_id override required"):
+        TwitterExportAdapter(missing)
+    with pytest.raises(ValueError, match="stable account id"):
+        TwitterExportAdapter(unstable)
+    with pytest.raises(ValueError, match="source_instance_id override required"):
+        TwitterExportAdapter(malformed)
+
+    assert TwitterExportAdapter(missing, source_instance_id="instance-1").source_instance_id == "instance-1"
 
 
 def test_pointer_reads_and_verifies_exact_source_bytes(tmp_path):
@@ -186,6 +212,21 @@ def test_mutated_source_gets_new_version_and_old_pointer_fails_closed(tmp_path):
     assert result.failure.code is SourceFailureCode.VERSION_MISMATCH
 
 
+def test_same_adapter_instance_rechecks_current_source_on_verify(tmp_path):
+    root = write_export(tmp_path / "export", tweets=[tweet(text="old")])
+    adapter = TwitterExportAdapter(root)
+    old_pointer = full_pointer(adapter)
+    (root / "data" / "tweets.js").write_text(
+        js_assignment("tweets", [tweet(text="new")]),
+        encoding="utf-8",
+    )
+
+    result = adapter.verify(old_pointer)
+
+    assert result.ok is False
+    assert result.failure.code is SourceFailureCode.VERSION_MISMATCH
+
+
 def test_wrong_adapter_wrong_instance_and_wrong_version_fail_closed(tmp_path):
     adapter = adapter_for(tmp_path)
     pointer = full_pointer(adapter)
@@ -219,15 +260,33 @@ def test_rejects_invalid_or_unsupported_coordinates(tmp_path):
     assert outside.failure.code is SourceFailureCode.INVALID_POINTER
 
 
-def test_missing_or_malformed_exports_fail_closed(tmp_path):
-    missing = TwitterExportAdapter(tmp_path / "missing")
+def test_missing_or_malformed_exports_fail_closed_for_version_lookup(tmp_path):
+    missing = TwitterExportAdapter(tmp_path / "missing", source_instance_id="instance-1")
     bad = write_export(tmp_path / "bad")
     (bad / "data" / "tweets.js").write_text("window.YTD.tweets.part0 = {not json", encoding="utf-8")
 
-    assert isinstance(missing.version_of(missing.source_instance_id, "tweet:100"), SourceFailure)
+    assert isinstance(missing.version_of("instance-1", "tweet:100"), SourceFailure)
     failure = TwitterExportAdapter(bad).version_of(TwitterExportAdapter(bad).source_instance_id, "x")
     assert isinstance(failure, SourceFailure)
     assert failure.code is SourceFailureCode.MALFORMED_SOURCE
+
+
+def test_enumeration_failure_is_explicit_and_empty_export_is_distinct(tmp_path):
+    missing = TwitterExportAdapter(tmp_path / "missing", source_instance_id="instance-1")
+    bad = TwitterExportAdapter(write_export(tmp_path / "bad"), source_instance_id="instance-1")
+    (tmp_path / "bad" / "data" / "tweets.js").write_text(
+        "window.YTD.tweets.part0 = {not json",
+        encoding="utf-8",
+    )
+    empty = TwitterExportAdapter(write_export(tmp_path / "empty", tweets=[]))
+
+    with pytest.raises(SourceEnumerationError) as missing_error:
+        tuple(missing.enumerate_records())
+    with pytest.raises(SourceEnumerationError) as bad_error:
+        tuple(bad.enumerate_records())
+    assert missing_error.value.failure.code is SourceFailureCode.UNAVAILABLE
+    assert bad_error.value.failure.code is SourceFailureCode.MALFORMED_SOURCE
+    assert tuple(empty.enumerate_records()) == ()
 
 
 def test_rejects_duplicate_tweet_ids(tmp_path):
@@ -243,6 +302,19 @@ def test_rejects_archive_member_escape(tmp_path):
     write_zip_export(archive_path)
     with zipfile.ZipFile(archive_path, "a") as archive:
         archive.writestr("../escape.txt", "nope")
+
+    adapter = TwitterExportAdapter(archive_path, source_instance_id="instance-fixed")
+    failure = adapter.version_of("instance-fixed", "tweet:100")
+
+    assert isinstance(failure, SourceFailure)
+    assert failure.code is SourceFailureCode.INTEGRITY_FAILURE
+
+
+def test_rejects_duplicate_zip_member_names(tmp_path):
+    archive_path = write_zip_export(tmp_path / "twitter.zip")
+    with pytest.warns(UserWarning, match="Duplicate name"):
+        with zipfile.ZipFile(archive_path, "a") as archive:
+            archive.writestr("data/tweets.js", js_assignment("tweets", [tweet("200")]))
 
     adapter = TwitterExportAdapter(archive_path, source_instance_id="instance-fixed")
     failure = adapter.version_of("instance-fixed", "tweet:100")
