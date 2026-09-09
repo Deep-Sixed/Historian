@@ -36,6 +36,10 @@ archive families are out of scope for this PR.
 
 If a stable account id is unavailable, callers must provide `source_instance_id`
 explicitly. The adapter does not manufacture source lineage from a local filesystem path.
+For derived identities, every verification path re-reads the current account identity and
+rejects archives whose stable account id no longer maps to the adapter's
+`source_instance_id`. Explicit overrides do not prove account ownership, but any account
+and manifest ids present in the current archive must still agree.
 
 ## Record Model
 
@@ -73,6 +77,8 @@ The adapter supports:
 `JSON_POINTER` stores only the logical JSON path. The record `version_hash` protects the
 record bytes, avoiding ambiguous byte anchors when identical values occur in multiple JSON
 fields.
+Array indexes are strict non-negative decimal indexes; negative, signed, non-numeric or
+out-of-range indexes are rejected.
 
 ## Failure Behavior
 
@@ -84,6 +90,7 @@ The adapter fails closed with typed `SourceFailure` values for:
 - unexpected JavaScript assignment names for known archive members
 - malformed JSON
 - manifest/account identity mismatch
+- source instance identity drift after pointer creation
 - duplicate tweet ids
 - duplicate tweet-header ids
 - missing tweet ids
@@ -92,7 +99,7 @@ The adapter fails closed with typed `SourceFailure` values for:
 - changed source versions
 - unsupported coordinates
 - byte ranges outside the canonical record
-- invalid JSON pointer paths
+- invalid JSON pointer paths or array indexes
 - missing archived tweet media for tweets that declare media entities
 - archive member escape
 - duplicate zip member names

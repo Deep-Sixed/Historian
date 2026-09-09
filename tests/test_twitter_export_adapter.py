@@ -228,6 +228,26 @@ def test_json_pointer_uses_path_not_first_matching_value_bytes(tmp_path):
     assert adapter.verify(pointer_b).source.content == b'"same text"'
 
 
+def test_json_pointer_decodes_required_token_escapes(tmp_path):
+    adapter = adapter_for(
+        tmp_path,
+        tweets=[
+            {
+                "tweet": {
+                    "id_str": "100",
+                    "full_text": "display",
+                    "a/b": {"c~d": "escaped"},
+                }
+            }
+        ],
+    )
+
+    pointer = adapter.pointer_for_field("tweet:100", "/tweet/a~1b/c~0d")
+
+    assert isinstance(pointer, SourcePointer)
+    assert adapter.verify(pointer).source.content == b'"escaped"'
+
+
 def test_locator_is_produced_from_verified_twitter_source(tmp_path):
     adapter = adapter_for(tmp_path)
     locator = adapter.locator_for(full_pointer(adapter))
@@ -272,6 +292,43 @@ def test_same_adapter_instance_rechecks_current_source_on_verify(tmp_path):
     assert result.failure.code is SourceFailureCode.VERSION_MISMATCH
 
 
+def test_same_adapter_instance_rechecks_current_source_identity_on_verify(tmp_path):
+    root = write_export(tmp_path / "export", tweets=[tweet(text="same")])
+    adapter = TwitterExportAdapter(root)
+    old_pointer = full_pointer(adapter)
+    (root / "data" / "account.js").write_text(
+        js_assignment("account", [{"account": {"accountId": "acct-2"}}]),
+        encoding="utf-8",
+    )
+    (root / "data" / "manifest.js").write_text(
+        manifest_assignment({"accountId": "acct-2"}),
+        encoding="utf-8",
+    )
+
+    result = adapter.verify(old_pointer)
+
+    assert result.ok is False
+    assert result.failure.code is SourceFailureCode.INTEGRITY_FAILURE
+
+
+def test_explicit_source_instance_id_still_rejects_account_manifest_mismatch(tmp_path):
+    root = write_export(tmp_path / "export")
+    adapter = TwitterExportAdapter(root, source_instance_id="explicit-instance")
+    (root / "data" / "account.js").write_text(
+        js_assignment("account", [{"account": {"accountId": "acct-1"}}]),
+        encoding="utf-8",
+    )
+    (root / "data" / "manifest.js").write_text(
+        manifest_assignment({"accountId": "acct-2"}),
+        encoding="utf-8",
+    )
+
+    failure = adapter.version_of("explicit-instance", "tweet:100")
+
+    assert isinstance(failure, SourceFailure)
+    assert failure.code is SourceFailureCode.INTEGRITY_FAILURE
+
+
 def test_wrong_adapter_wrong_instance_and_wrong_version_fail_closed(tmp_path):
     adapter = adapter_for(tmp_path)
     pointer = full_pointer(adapter)
@@ -306,6 +363,76 @@ def test_rejects_invalid_or_unsupported_coordinates(tmp_path):
     assert unsupported.failure.code is SourceFailureCode.UNSUPPORTED_COORDINATE
     assert invalid_json.failure.code is SourceFailureCode.INVALID_POINTER
     assert outside.failure.code is SourceFailureCode.INVALID_POINTER
+
+
+def test_json_pointer_rejects_negative_array_index(tmp_path):
+    adapter = adapter_for(
+        tmp_path,
+        tweets=[
+            {
+                "tweet": {
+                    "id_str": "100",
+                    "full_text": "display",
+                    "items": ["first", "second"],
+                }
+            }
+        ],
+    )
+    full = full_pointer(adapter)
+    pointer = replace(
+        full,
+        coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/items/-1"),)),
+    )
+
+    result = adapter.verify(pointer)
+
+    assert result.ok is False
+    assert result.failure.code is SourceFailureCode.INVALID_POINTER
+
+
+def test_json_pointer_rejects_signed_or_out_of_range_array_indexes(tmp_path):
+    adapter = adapter_for(
+        tmp_path,
+        tweets=[
+            {
+                "tweet": {
+                    "id_str": "100",
+                    "full_text": "display",
+                    "items": ["first", "second"],
+                }
+            }
+        ],
+    )
+    full = full_pointer(adapter)
+    signed = adapter.verify(
+        replace(
+            full,
+            coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/items/+1"),)),
+        )
+    )
+    out_of_range = adapter.verify(
+        replace(
+            full,
+            coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/items/2"),)),
+        )
+    )
+
+    assert signed.failure.code is SourceFailureCode.INVALID_POINTER
+    assert out_of_range.failure.code is SourceFailureCode.INVALID_POINTER
+
+
+def test_json_pointer_rejects_invalid_escape_sequence(tmp_path):
+    adapter = adapter_for(tmp_path)
+    full = full_pointer(adapter)
+    pointer = replace(
+        full,
+        coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/a~2b"),)),
+    )
+
+    result = adapter.verify(pointer)
+
+    assert result.ok is False
+    assert result.failure.code is SourceFailureCode.INVALID_POINTER
 
 
 def test_missing_or_malformed_exports_fail_closed_for_version_lookup(tmp_path):
