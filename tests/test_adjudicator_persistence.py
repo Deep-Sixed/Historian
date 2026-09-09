@@ -26,6 +26,8 @@ from historian.types import (
 psycopg = pytest.importorskip("psycopg")
 from test_pg_roles import conn, sha  # noqa: E402  (shared vault-backed connection helper)
 
+pytestmark = pytest.mark.pg
+
 LOCAL = "CURRENT_OPERATIONAL_STATE"
 TAX = FrameTaxonomy("v1", (LOCAL, "UPSTREAM_PRODUCT_STATE"))
 POLICY = AuthorityPolicy("v1", {LOCAL: (SourceRole.LOCAL_OPERATIONAL_DECISION,)})

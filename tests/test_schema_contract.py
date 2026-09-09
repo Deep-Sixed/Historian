@@ -35,4 +35,7 @@ def test_migration_hardens_existing_frozen_databases_without_reprovisioning():
     assert "ADD CONSTRAINT claim_question_identity UNIQUE (id, question_id)" in sql
     assert "CREATE OR REPLACE FUNCTION resolution_claim_dep_same_question()" in sql
     assert "DROP TRIGGER IF EXISTS resolution_claim_dep_same_question_trg" in sql
+    assert "conrelid = 'routing_proposal'::regclass" in sql
+    assert "conrelid = 'resolution'::regclass" in sql
+    assert "conrelid = 'claim_proposal'::regclass" in sql
     assert "docker rm" not in sql

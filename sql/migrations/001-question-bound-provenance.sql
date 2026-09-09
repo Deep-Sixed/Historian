@@ -38,14 +38,20 @@ ALTER TABLE claim_proposal
 DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'routing_question_identity'
+        SELECT 1
+          FROM pg_constraint
+         WHERE conname = 'routing_question_identity'
+           AND conrelid = 'routing_proposal'::regclass
     ) THEN
         ALTER TABLE routing_proposal
             ADD CONSTRAINT routing_question_identity UNIQUE (id, question_id);
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'resolution_route_answers_same_question'
+        SELECT 1
+          FROM pg_constraint
+         WHERE conname = 'resolution_route_answers_same_question'
+           AND conrelid = 'resolution'::regclass
     ) THEN
         ALTER TABLE resolution
             ADD CONSTRAINT resolution_route_answers_same_question FOREIGN KEY
@@ -54,7 +60,10 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'claim_question_identity'
+        SELECT 1
+          FROM pg_constraint
+         WHERE conname = 'claim_question_identity'
+           AND conrelid = 'claim_proposal'::regclass
     ) THEN
         ALTER TABLE claim_proposal
             ADD CONSTRAINT claim_question_identity UNIQUE (id, question_id);
