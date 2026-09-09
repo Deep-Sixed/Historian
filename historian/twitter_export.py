@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import posixpath
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 from zipfile import BadZipFile, ZipFile
@@ -39,6 +40,12 @@ class TwitterExportAdapter:
     """
 
     source_system = "TWITTER_EXPORT"
+    _ASSIGNMENTS = {
+        "data/manifest.js": ("window.__THAR_CONFIG",),
+        "data/account.js": ("window.YTD.account.part0",),
+        "data/tweets.js": ("window.YTD.tweets.part0",),
+        "data/tweet-headers.js": ("window.YTD.tweet_headers.part0",),
+    }
 
     def __init__(self, export_root: str | Path, source_instance_id: str | None = None):
         self._root = Path(export_root).resolve()
@@ -81,9 +88,8 @@ class TwitterExportAdapter:
         content = self._records[pointer.record_id]
         if pointer.coordinate.coordinate_system == "JSON_POINTER":
             parts = {part.name: part.value for part in pointer.coordinate.parts}
-            start = int(parts["byte_start"])
-            end = int(parts["byte_end"])
-            return content[start:end]
+            value = self._resolve_json_pointer(json.loads(content), parts["path"])
+            return self._canonical_bytes(value)
         parts = {part.name: int(part.value) for part in pointer.coordinate.parts}
         start = parts["start"]
         end = parts["end"]
@@ -117,13 +123,9 @@ class TwitterExportAdapter:
         content = self._records[record_id]
         path = field_path if field_path.startswith("/") else f"/{field_path}"
         try:
-            value = self._resolve_json_pointer(json.loads(content), path)
+            self._resolve_json_pointer(json.loads(content), path)
         except (KeyError, TypeError, ValueError) as exc:
             return SourceFailure(SourceFailureCode.NOT_FOUND, str(exc))
-        needle = self._canonical_bytes(value)
-        start = content.find(needle)
-        if start == -1:
-            return SourceFailure(SourceFailureCode.NOT_FOUND, "field value is not present")
         return SourcePointer(
             self.source_system,
             self.source_instance_id,
@@ -131,11 +133,7 @@ class TwitterExportAdapter:
             version,
             SourceCoordinate(
                 "JSON_POINTER",
-                (
-                    CoordinatePart("byte_end", str(start + len(needle))),
-                    CoordinatePart("byte_start", str(start)),
-                    CoordinatePart("path", path),
-                ),
+                (CoordinatePart("path", path),),
             ),
         )
 
@@ -175,33 +173,25 @@ class TwitterExportAdapter:
 
     def _validate_json_pointer(self, pointer: SourcePointer) -> SourceFailure | None:
         parts = {part.name: part.value for part in pointer.coordinate.parts}
-        if set(parts) != {"byte_end", "byte_start", "path"}:
+        if set(parts) != {"path"}:
             return SourceFailure(
                 SourceFailureCode.INVALID_POINTER,
-                "JSON_POINTER requires path/byte_start/byte_end",
+                "JSON_POINTER requires path",
             )
-        try:
-            start = int(parts["byte_start"])
-            end = int(parts["byte_end"])
-        except ValueError:
-            return SourceFailure(SourceFailureCode.INVALID_POINTER, "byte anchors are not numeric")
         content = self._records[pointer.record_id]
         path = parts["path"]
         if not path.startswith("/"):
             return SourceFailure(SourceFailureCode.INVALID_POINTER, "JSON pointer must be absolute")
-        if start < 0 or end < start or end > len(content):
-            return SourceFailure(SourceFailureCode.INVALID_POINTER, "invalid JSON pointer byte range")
         try:
-            expected = self._canonical_bytes(self._resolve_json_pointer(json.loads(content), path))
+            self._resolve_json_pointer(json.loads(content), path)
         except (KeyError, TypeError, ValueError) as exc:
             return SourceFailure(SourceFailureCode.INVALID_POINTER, str(exc))
-        if content[start:end] != expected:
-            return SourceFailure(SourceFailureCode.INVALID_POINTER, "JSON pointer anchor moved")
         return None
 
     def _ensure_records(self) -> SourceFailure | None:
         try:
             self._load_archive_manifest()
+            media_index = self._media_index()
             tweets = self._load_ytd_array("data/tweets.js")
             headers = self._tweet_headers_by_id()
         except KeyError as exc:
@@ -233,12 +223,14 @@ class TwitterExportAdapter:
                     SourceFailureCode.INTEGRITY_FAILURE,
                     f"duplicate tweet id {tweet_id!r}",
                 )
-            if failure := self._validate_media_references(tweet):
-                return failure
+            media_refs = self._media_refs_for_tweet(tweet, tweet_id, media_index)
+            if isinstance(media_refs, SourceFailure):
+                return media_refs
             records[record_id] = self._canonical_bytes({
                 "family": "tweet",
                 "tweet": tweet,
                 "tweet_header": headers.get(tweet_id),
+                "tweet_media": media_refs,
             })
 
         self._records = records
@@ -246,6 +238,7 @@ class TwitterExportAdapter:
 
     def _derive_source_instance_id(self) -> str:
         try:
+            manifest = self._load_archive_manifest()
             account = self._load_ytd_array("data/account.js")
             account_id = self._account_id(account)
         except (BadZipFile, KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
@@ -254,6 +247,9 @@ class TwitterExportAdapter:
             ) from exc
         if not account_id:
             raise ValueError("account.js does not contain a stable account id")
+        manifest_account_id = self._manifest_account_id(manifest)
+        if manifest_account_id and manifest_account_id != account_id:
+            raise ValueError("manifest.js account id does not match account.js")
         return sha256_bytes(b"TWITTER_EXPORT_ACCOUNT\0" + account_id.encode("utf-8"))
 
     def _load_archive_manifest(self) -> Any:
@@ -285,9 +281,16 @@ class TwitterExportAdapter:
 
     def _load_ytd_payload(self, member_name: str) -> Any:
         raw = self._read_export_member(member_name).decode("utf-8")
-        _, sep, rhs = raw.partition("=")
+        lhs, sep, rhs = raw.partition("=")
         if not sep:
             raise json.JSONDecodeError(f"{member_name} has no assignment", raw, 0)
+        expected = self._ASSIGNMENTS.get(member_name)
+        if expected is not None and lhs.strip() not in expected:
+            raise json.JSONDecodeError(
+                f"{member_name} has unexpected assignment {lhs.strip()!r}",
+                raw,
+                0,
+            )
         return json.loads(rhs.strip().rstrip(";"))
 
     def _read_export_member(self, member_name: str) -> bytes:
@@ -303,6 +306,19 @@ class TwitterExportAdapter:
             with ZipFile(self._root) as archive:
                 self._validate_zip_members(archive)
                 return archive.read(member_name)
+        raise OSError(f"export root does not exist: {self._root}")
+
+    def _list_export_members(self) -> list[str]:
+        if self._root.is_dir():
+            return [
+                path.relative_to(self._root).as_posix()
+                for path in self._root.rglob("*")
+                if path.is_file()
+            ]
+        if self._root.is_file():
+            with ZipFile(self._root) as archive:
+                self._validate_zip_members(archive)
+                return archive.namelist()
         raise OSError(f"export root does not exist: {self._root}")
 
     def _validate_zip_members(self, archive: ZipFile) -> None:
@@ -324,31 +340,58 @@ class TwitterExportAdapter:
         ):
             raise ValueError(f"archive member escapes source root: {member_name!r}")
 
-    def _validate_media_references(self, tweet: dict) -> SourceFailure | None:
-        for ref in self._strings(tweet):
-            if "tweets_media/" not in ref:
+    def _media_index(self) -> dict[str, list[str]]:
+        index: dict[str, list[str]] = {}
+        for member in self._list_export_members():
+            normalized = posixpath.normpath(member)
+            if not normalized.startswith("data/tweets_media/") or normalized.endswith("/"):
                 continue
-            member = ref[ref.index("tweets_media/"):]
-            member = member if member.startswith("data/") else f"data/{member}"
+            filename = posixpath.basename(normalized)
+            tweet_id, sep, _ = filename.partition("-")
+            if not sep or not tweet_id:
+                continue
+            index.setdefault(tweet_id, []).append(normalized)
+        return {tweet_id: sorted(members) for tweet_id, members in index.items()}
+
+    def _media_refs_for_tweet(
+        self,
+        tweet: dict,
+        tweet_id: str,
+        media_index: dict[str, list[str]],
+    ) -> list[dict[str, str]] | SourceFailure:
+        if not self._tweet_declares_media(tweet):
+            return []
+        members = media_index.get(tweet_id)
+        if not members:
+            return SourceFailure(
+                SourceFailureCode.NOT_FOUND,
+                f"tweet {tweet_id!r} declares media but has no archived tweets_media member",
+            )
+        refs = []
+        for member in members:
             try:
-                self._read_export_member(member)
+                content = self._read_export_member(member)
             except (FileNotFoundError, KeyError):
                 return SourceFailure(SourceFailureCode.NOT_FOUND, f"media reference missing: {member}")
             except (BadZipFile, OSError) as exc:
                 return SourceFailure(SourceFailureCode.UNAVAILABLE, str(exc))
             except ValueError as exc:
                 return SourceFailure(SourceFailureCode.INTEGRITY_FAILURE, str(exc))
-        return None
+            refs.append({"member": member, "sha256": sha256_bytes(content)})
+        return refs
 
-    def _strings(self, value: Any):
-        if isinstance(value, str):
-            yield value
-        elif isinstance(value, dict):
-            for child in value.values():
-                yield from self._strings(child)
-        elif isinstance(value, list):
-            for child in value:
-                yield from self._strings(child)
+    def _tweet_declares_media(self, tweet: dict) -> bool:
+        return any(
+            self._media_entities(tweet, container)
+            for container in ("entities", "extended_entities")
+        )
+
+    def _media_entities(self, tweet: dict, container: str) -> list:
+        value = tweet.get(container)
+        if not isinstance(value, dict):
+            return []
+        media = value.get("media")
+        return media if isinstance(media, list) else []
 
     def _tweet_id(self, tweet: dict) -> str | None:
         for key in ("id_str", "id", "tweet_id"):
@@ -367,6 +410,22 @@ class TwitterExportAdapter:
                 if isinstance(value, str) and value:
                     return value
         return None
+
+    def _manifest_account_id(self, manifest: Any) -> str | None:
+        for value in self._values_for_key(manifest, "accountId"):
+            if isinstance(value, str) and value:
+                return value
+        return None
+
+    def _values_for_key(self, value: Any, key: str) -> Iterable[Any]:
+        if isinstance(value, dict):
+            for item_key, item_value in value.items():
+                if item_key == key:
+                    yield item_value
+                yield from self._values_for_key(item_value, key)
+        elif isinstance(value, list):
+            for item in value:
+                yield from self._values_for_key(item, key)
 
     def _resolve_json_pointer(self, value: Any, path: str) -> Any:
         current = value

@@ -22,6 +22,10 @@ def js_assignment(name, payload):
     return f"window.YTD.{name}.part0 = {json.dumps(payload)};"
 
 
+def manifest_assignment(payload):
+    return f"window.__THAR_CONFIG = {json.dumps(payload)};"
+
+
 def tweet(tweet_id="100", text="hello", media_ref=None):
     data = {"id_str": tweet_id, "full_text": text, "created_at": "Fri Sep 04 00:00:00 +0000 2026"}
     if media_ref:
@@ -38,9 +42,10 @@ def write_export(root, *, tweets=None, headers=None, account=None, manifest=None
     data.mkdir(parents=True)
     (root / "Your archive.html").write_text("<html></html>", encoding="utf-8")
     (data / "manifest.js").write_text(
-        js_assignment(
-            "manifest",
-            {"archiveInfo": {"createdAt": "2026-09-04"}} if manifest is None else manifest,
+        manifest_assignment(
+            {"archiveInfo": {"createdAt": "2026-09-04"}, "accountId": "acct-1"}
+            if manifest is None
+            else manifest,
         ),
         encoding="utf-8",
     )
@@ -70,9 +75,10 @@ def write_zip_export(path, *, tweets=None, headers=None, account=None, manifest=
         archive.writestr("Your archive.html", "<html></html>")
         archive.writestr(
             "data/manifest.js",
-            js_assignment(
-                "manifest",
-                {"archiveInfo": {"createdAt": "2026-09-04"}} if manifest is None else manifest,
+            manifest_assignment(
+                {"archiveInfo": {"createdAt": "2026-09-04"}, "accountId": "acct-1"}
+                if manifest is None
+                else manifest,
             ),
         )
         archive.writestr(
@@ -118,11 +124,26 @@ def test_source_instance_id_is_deterministic_from_account_data(tmp_path):
         write_export(tmp_path / "second", account=[{"account": {"accountId": "acct-1", "name": "B"}}])
     )
     other = TwitterExportAdapter(
-        write_export(tmp_path / "other", account=[{"account": {"accountId": "acct-2"}}])
+        write_export(
+            tmp_path / "other",
+            account=[{"account": {"accountId": "acct-2"}}],
+            manifest={"accountId": "acct-2"},
+        )
     )
 
     assert first.source_instance_id == second.source_instance_id
     assert first.source_instance_id != other.source_instance_id
+
+
+def test_manifest_account_id_is_cross_checked_against_account_data(tmp_path):
+    mismatch = write_export(
+        tmp_path / "mismatch",
+        account=[{"account": {"accountId": "acct-1"}}],
+        manifest={"accountId": "acct-2"},
+    )
+
+    with pytest.raises(ValueError, match="manifest.js account id"):
+        TwitterExportAdapter(mismatch)
 
 
 def test_explicit_source_instance_id_is_supported_and_empty_is_rejected(tmp_path):
@@ -181,6 +202,30 @@ def test_json_pointer_coordinate_addresses_exact_field_anchor(tmp_path):
 
     assert result.ok is True
     assert result.source.content == json.dumps("field target").encode("utf-8")
+
+
+def test_json_pointer_uses_path_not_first_matching_value_bytes(tmp_path):
+    adapter = adapter_for(
+        tmp_path,
+        tweets=[
+            {
+                "tweet": {
+                    "id_str": "100",
+                    "field_a": "same text",
+                    "field_b": "same text",
+                    "full_text": "display",
+                }
+            }
+        ],
+    )
+    pointer_a = adapter.pointer_for_field("tweet:100", "/tweet/field_a")
+    pointer_b = adapter.pointer_for_field("tweet:100", "/tweet/field_b")
+
+    assert isinstance(pointer_a, SourcePointer)
+    assert isinstance(pointer_b, SourcePointer)
+    assert pointer_a.coordinate != pointer_b.coordinate
+    assert adapter.verify(pointer_a).source.content == b'"same text"'
+    assert adapter.verify(pointer_b).source.content == b'"same text"'
 
 
 def test_locator_is_produced_from_verified_twitter_source(tmp_path):
@@ -250,7 +295,10 @@ def test_rejects_invalid_or_unsupported_coordinates(tmp_path):
     invalid_json = adapter.verify(
         replace(
             pointer,
-            coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/full_text"),)),
+            coordinate=SourceCoordinate(
+                "JSON_POINTER",
+                (CoordinatePart("path", "/tweet/full_text"), CoordinatePart("extra", "x")),
+            ),
         )
     )
     outside = adapter.verify(replace(pointer, coordinate=SourceCoordinate.byte_range(0, 999999)))
@@ -332,21 +380,38 @@ def test_reads_zip_export_without_extracting(tmp_path):
     assert result.source.pointer.source_system == "TWITTER_EXPORT"
 
 
-def test_media_references_are_verified_when_present(tmp_path):
+def test_media_entities_are_bound_by_tweet_id_prefix(tmp_path):
     adapter = adapter_for(
         tmp_path,
-        tweets=[tweet(media_ref="tweets_media/100-photo.jpg")],
+        tweets=[tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")],
         media={"100-photo.jpg": b"image bytes"},
     )
     missing_media = adapter_for(
         tmp_path / "missing",
-        tweets=[tweet(media_ref="tweets_media/100-photo.jpg")],
+        tweets=[tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")],
     )
 
     assert adapter.verify(full_pointer(adapter)).ok is True
     failure = missing_media.version_of(missing_media.source_instance_id, "tweet:100")
     assert isinstance(failure, SourceFailure)
     assert failure.code is SourceFailureCode.NOT_FOUND
+
+
+def test_media_hashes_are_part_of_tweet_version(tmp_path):
+    first = adapter_for(
+        tmp_path / "first",
+        tweets=[tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")],
+        media={"100-photo.jpg": b"one"},
+    )
+    second = adapter_for(
+        tmp_path / "second",
+        tweets=[tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")],
+        media={"100-photo.jpg": b"two"},
+    )
+
+    assert first.version_of(first.source_instance_id, "tweet:100") != second.version_of(
+        second.source_instance_id, "tweet:100"
+    )
 
 
 def test_tweet_headers_are_included_in_versioned_record(tmp_path):
@@ -357,3 +422,17 @@ def test_tweet_headers_are_included_in_versioned_record(tmp_path):
         with_header.version_of(with_header.source_instance_id, "tweet:100")
         != without_header.version_of(without_header.source_instance_id, "tweet:100")
     )
+
+
+def test_rejects_unexpected_archive_data_assignment(tmp_path):
+    export = write_export(tmp_path / "bad-assignment")
+    (export / "data" / "tweets.js").write_text(
+        f"something.unrelated = {json.dumps([tweet()])};",
+        encoding="utf-8",
+    )
+
+    adapter = TwitterExportAdapter(export)
+    failure = adapter.version_of(adapter.source_instance_id, "tweet:100")
+
+    assert isinstance(failure, SourceFailure)
+    assert failure.code is SourceFailureCode.MALFORMED_SOURCE
