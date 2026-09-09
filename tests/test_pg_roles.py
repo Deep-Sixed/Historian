@@ -11,6 +11,7 @@ Credentials come from redacted via redacted-secret. There is no credential file.
 """
 
 import hashlib
+import os
 import subprocess
 import uuid
 from pathlib import Path
@@ -21,6 +22,8 @@ psycopg = pytest.importorskip("psycopg")
 
 from historian.capability import BlindAdjudicator  # noqa: E402
 from historian.types import AdjudicationVerdict  # noqa: E402
+
+pytestmark = pytest.mark.pg
 
 JARVIS_SECRET = Path("/example/corpus")
 RUN = uuid.uuid4().hex[:8]
@@ -50,15 +53,33 @@ VAULT_ENTRY = {
 _CACHE: dict[str, str] = {}
 
 
+def _conninfo(*, role: str, password: str | None = None) -> str:
+    parts = [
+        f"host={os.environ.get('HISTORIAN_PGHOST', '127.0.0.1')}",
+        f"port={os.environ.get('HISTORIAN_PGPORT', '5444')}",
+        f"dbname={os.environ.get('HISTORIAN_PGDATABASE', 'evecor_historian')}",
+        f"user={role}",
+    ]
+    if password is not None:
+        parts.append(f"password={password}")
+    return " ".join(parts)
+
+
 def _secret(name: str) -> str:
+    if val := os.environ.get(name):
+        return val
     if name in _CACHE:
         return _CACHE[name]
     if not JARVIS_SECRET.exists():
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail("redacted-secret unavailable and no environment credential supplied")
         pytest.skip("redacted-secret unavailable")
     r = subprocess.run([str(JARVIS_SECRET), "get", name],
                        capture_output=True, text=True, timeout=120)
     val = r.stdout.strip()
     if r.returncode != 0 or not val:
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail(f"credential {name} unavailable")
         pytest.skip(f"vault entry {name} unavailable")
     _CACHE[name] = val
     return val
@@ -66,9 +87,7 @@ def _secret(name: str) -> str:
 
 def conn(role: str):
     pw = _secret(VAULT_ENTRY[role])
-    return psycopg.connect(
-        f"host=127.0.0.1 port=5444 dbname=evecor_historian user={role} password={pw}",
-        autocommit=True)
+    return psycopg.connect(_conninfo(role=role, password=pw), autocommit=True)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -79,6 +98,8 @@ def reachable():
     except pytest.skip.Exception:
         raise
     except Exception as e:                                    # pragma: no cover
+        if os.environ.get("HISTORIAN_RUN_PG") == "1":
+            pytest.fail(f"historian db unreachable: {e}")
         pytest.skip(f"historian db unreachable: {e}")
 
 
@@ -206,14 +227,13 @@ def packets(seeded):
 def test_unauthenticated_connection_is_refused(seeded, packets):
     """The bypass the trust instance could not detect."""
     with pytest.raises(psycopg.OperationalError):
-        psycopg.connect("host=127.0.0.1 port=5444 dbname=evecor_historian "
-                        "user=historian_extractor", connect_timeout=5)
+        psycopg.connect(_conninfo(role="historian_extractor"), connect_timeout=5)
 
 
 def test_wrong_password_is_refused(seeded, packets):
     with pytest.raises(psycopg.OperationalError):
-        psycopg.connect("host=127.0.0.1 port=5444 dbname=evecor_historian "
-                        "user=historian_adjudicator password=wrong", connect_timeout=5)
+        psycopg.connect(_conninfo(role="historian_adjudicator", password="wrong"),
+                        connect_timeout=5)
 
 
 def test_scram_is_the_password_encryption(seeded, packets):

@@ -10,7 +10,7 @@ requires-python = ">=3.13"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "psycopg[binary]>=3"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["historian"]
@@ -19,5 +19,6 @@ packages = ["historian"]
 testpaths = ["tests"]
 markers = [
     "structural_gate: G-S1..G-S9 structural invariant enforcement",
+    "pg: PostgreSQL security/invariant tests; requires --run-pg and a provisioned database",
     "canary: real-corpus regression signal - NON-BLOCKING, not a release gate",
 ]
