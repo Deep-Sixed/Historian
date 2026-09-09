@@ -1,0 +1,99 @@
+name: Historian validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  core:
+    name: Python/core tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.5"
+      - name: Install test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run core/static gate
+        run: python -m pytest -q -m "not pg and not canary"
+
+  postgres:
+    name: PostgreSQL security/invariant tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: evecor_historian
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+          POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+        ports:
+          - 5444:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d evecor_historian"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5444"
+      PGDATABASE: evecor_historian
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      HISTORIAN_PGHOST: 127.0.0.1
+      HISTORIAN_PGPORT: "5444"
+      HISTORIAN_PGDATABASE: evecor_historian
+      HISTORIAN_OWNER: historian_owner_ci
+      HISTORIAN_EXTRACTOR: historian_extractor_ci
+      HISTORIAN_EVIDENCE_VERIFIER: historian_evidence_verifier_ci
+      HISTORIAN_CASE_DESIGNER: historian_case_designer_ci
+      HISTORIAN_TYPED_INGESTOR: historian_typed_ingestor_ci
+      HISTORIAN_HUMAN_REVIEWER: historian_human_reviewer_ci
+      HISTORIAN_RUNTIME: historian_runtime_ci
+      HISTORIAN_PACKET_BUILDER: historian_packet_builder_ci
+      HISTORIAN_GOLD_COMPILER: historian_gold_compiler_ci
+      HISTORIAN_ADJ_ALICE: historian_adj_alice_ci
+      HISTORIAN_ADJ_BOB: historian_adj_bob_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.5"
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Install test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Build frozen baseline database and apply migration
+        run: scripts/ci-setup-postgres.sh
+      - name: Run PostgreSQL gate
+        run: >
+          python -m pytest -q
+          tests/test_pg_roles.py
+          tests/test_adjudicator_persistence.py
+          --run-pg
+
+  corpus-canary:
+    name: Corpus canary
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.5"
+      - name: Install test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run corpus canary when corpus is available
+        run: python -m pytest -q -m canary --run-corpus

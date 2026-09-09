@@ -65,7 +65,20 @@ Vault backup taken before the write:
 
 ## Tests
 
-    python3 -m pytest -q            # 84 tests; PG tests skip if :5444 is unreachable
+    python3 -m pytest -q -m "not pg and not canary"
+        # Python/core + static schema contract only
+
+    python3 -m pytest -q tests/test_pg_roles.py tests/test_adjudicator_persistence.py --run-pg
+        # PostgreSQL security/invariant gate; fails if :5444 or credentials are unavailable
+
+    python3 -m pytest -q -m canary --run-corpus
+        # Real-corpus canary; non-blocking and expected to skip where the corpus is absent
+
+Do not report a skipped PostgreSQL gate as passing. Status should be recorded separately:
+
+    Python/core tests        PASS / FAIL
+    PostgreSQL gates         PASS / FAIL / NOT RUN
+    Corpus canary            PASS / FAIL / NOT RUN
 
 The suite is re-runnable against a persistent database: writes use a run-scoped id
 suffix, because the tables are append-only by design and no role can DELETE, so tests
