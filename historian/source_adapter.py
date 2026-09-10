@@ -71,6 +71,16 @@ class SourceFailure:
         _required(self.detail, "SourceFailure.detail")
 
 
+class SourceEnumerationError(RuntimeError):
+    """Enumeration failed closed instead of pretending the source is empty."""
+
+    def __init__(self, failure: SourceFailure):
+        if not isinstance(failure, SourceFailure):
+            raise TypeError("SourceEnumerationError.failure must be a SourceFailure")
+        self.failure = failure
+        super().__init__(f"{failure.code.value}: {failure.detail}")
+
+
 @dataclass(frozen=True, slots=True)
 class CoordinatePart:
     """One source-owned coordinate component."""
@@ -325,7 +335,12 @@ class SourceAdapter(Protocol):
     source_system: str
 
     def enumerate_records(self) -> Iterable[SourceRecord]:
-        """Yield stable logical records visible to this adapter."""
+        """Yield stable logical records visible to this adapter.
+
+        Implementations raise SourceEnumerationError with a typed SourceFailure when a
+        source is malformed, unavailable or otherwise unverifiable during enumeration.
+        A successful empty iterator is reserved for valid sources with no records.
+        """
         ...
 
     def version_of(self, source_instance_id: str, record_id: str) -> str | SourceFailure:
@@ -348,6 +363,7 @@ __all__ = [
     "SHA256_HEX",
     "SourceAdapter",
     "SourceCoordinate",
+    "SourceEnumerationError",
     "SourceFailure",
     "SourceFailureCode",
     "SourceMaterialState",
