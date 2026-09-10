@@ -122,7 +122,7 @@ class TwitterExportAdapter:
         if isinstance(version, SourceFailure):
             return version
         content = self._records[record_id]
-        path = field_path if field_path.startswith("/") else f"/{field_path}"
+        path = field_path if field_path == "" or field_path.startswith("/") else f"/{field_path}"
         try:
             self._resolve_json_pointer(json.loads(content), path)
         except (KeyError, TypeError, ValueError) as exc:
@@ -461,6 +461,8 @@ class TwitterExportAdapter:
             elif isinstance(current, list):
                 if not part or not all("0" <= char <= "9" for char in part):
                     raise ValueError("JSON pointer array index must be a non-negative decimal")
+                if len(part) > 1 and part.startswith("0"):
+                    raise ValueError("JSON pointer array index must not contain leading zeros")
                 index = int(part)
                 if index >= len(current):
                     raise ValueError("JSON pointer array index is out of range")
