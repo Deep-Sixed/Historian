@@ -80,7 +80,8 @@ class CoordinatePart:
 
     def __post_init__(self) -> None:
         _required(self.name, "CoordinatePart.name")
-        _required(self.value, "CoordinatePart.value")
+        if not isinstance(self.value, str):
+            raise ValueError("CoordinatePart.value must be a string")
 
 
 @dataclass(frozen=True, slots=True)

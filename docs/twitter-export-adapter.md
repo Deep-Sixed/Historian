@@ -77,8 +77,8 @@ The adapter supports:
 `JSON_POINTER` stores only the logical JSON path. The record `version_hash` protects the
 record bytes, avoiding ambiguous byte anchors when identical values occur in multiple JSON
 fields.
-Array indexes are strict non-negative decimal indexes; negative, signed, non-numeric or
-out-of-range indexes are rejected.
+Array indexes are strict non-negative decimal indexes without leading zeros; negative,
+signed, non-numeric, leading-zero or out-of-range indexes are rejected.
 
 ## Failure Behavior
 

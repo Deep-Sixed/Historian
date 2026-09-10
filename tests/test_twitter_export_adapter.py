@@ -204,6 +204,16 @@ def test_json_pointer_coordinate_addresses_exact_field_anchor(tmp_path):
     assert result.source.content == json.dumps("field target").encode("utf-8")
 
 
+def test_json_pointer_empty_path_addresses_complete_canonical_record(tmp_path):
+    adapter = adapter_for(tmp_path, tweets=[tweet("100", "root target")])
+    root_pointer = adapter.pointer_for_field("tweet:100", "")
+    record_pointer = full_pointer(adapter)
+
+    assert isinstance(root_pointer, SourcePointer)
+    assert root_pointer.coordinate == SourceCoordinate("JSON_POINTER", (CoordinatePart("path", ""),))
+    assert adapter.verify(root_pointer).source.content == adapter.verify(record_pointer).source.content
+
+
 def test_json_pointer_uses_path_not_first_matching_value_bytes(tmp_path):
     adapter = adapter_for(
         tmp_path,
@@ -419,6 +429,31 @@ def test_json_pointer_rejects_signed_or_out_of_range_array_indexes(tmp_path):
 
     assert signed.failure.code is SourceFailureCode.INVALID_POINTER
     assert out_of_range.failure.code is SourceFailureCode.INVALID_POINTER
+
+
+def test_json_pointer_rejects_leading_zero_array_index(tmp_path):
+    adapter = adapter_for(
+        tmp_path,
+        tweets=[
+            {
+                "tweet": {
+                    "id_str": "100",
+                    "full_text": "display",
+                    "items": ["first", "second"],
+                }
+            }
+        ],
+    )
+    full = full_pointer(adapter)
+    pointer = replace(
+        full,
+        coordinate=SourceCoordinate("JSON_POINTER", (CoordinatePart("path", "/tweet/items/01"),)),
+    )
+
+    result = adapter.verify(pointer)
+
+    assert result.ok is False
+    assert result.failure.code is SourceFailureCode.INVALID_POINTER
 
 
 def test_json_pointer_rejects_invalid_escape_sequence(tmp_path):

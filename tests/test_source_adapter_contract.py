@@ -113,6 +113,17 @@ def test_source_coordinate_supports_non_linear_adapter_owned_selectors():
     assert pointer.coordinate.coordinate_system == "ICAL_PROPERTY"
 
 
+def test_coordinate_part_allows_empty_value_for_coordinate_specific_semantics():
+    coord = SourceCoordinate("JSON_POINTER", (CoordinatePart("path", ""),))
+
+    assert coord.parts == (CoordinatePart("path", ""),)
+
+
+def test_coordinate_part_still_requires_non_empty_name():
+    with pytest.raises(ValueError, match="CoordinatePart.name"):
+        CoordinatePart("", "value")
+
+
 def test_source_coordinate_rejects_duplicate_part_names():
     with pytest.raises(ValueError, match="duplicate coordinate part"):
         SourceCoordinate(
