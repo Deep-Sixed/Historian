@@ -7,6 +7,7 @@ from historian.source_adapter import (
     EvidenceLocator,
     NormalizedIntakeRecord,
     SourceCoordinate,
+    SourceEnumerationError,
     SourceFailure,
     SourceFailureCode,
     SourceMaterialState,
@@ -206,6 +207,16 @@ def test_verification_result_rejects_malformed_success_and_failure_values():
         SourceVerificationResult(source="not verified source material")
     with pytest.raises(TypeError, match="failure"):
         SourceVerificationResult(failure="not a source failure")
+
+
+def test_source_enumeration_error_carries_typed_failure():
+    failure = SourceFailure(SourceFailureCode.MALFORMED_SOURCE, "not parseable")
+    error = SourceEnumerationError(failure)
+
+    assert error.failure is failure
+    assert str(error) == "MALFORMED_SOURCE: not parseable"
+    with pytest.raises(TypeError, match="SourceEnumerationError.failure"):
+        SourceEnumerationError("not a failure")
 
 
 def test_memory_adapter_is_idempotent_for_repeated_imports():

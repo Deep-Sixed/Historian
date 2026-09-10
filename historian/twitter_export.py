@@ -13,6 +13,7 @@ from historian.source_adapter import (
     CoordinatePart,
     EvidenceLocator,
     SourceCoordinate,
+    SourceEnumerationError,
     SourceFailure,
     SourceFailureCode,
     SourcePointer,
@@ -21,14 +22,6 @@ from historian.source_adapter import (
     VerifiedSource,
     sha256_bytes,
 )
-
-
-class SourceEnumerationError(RuntimeError):
-    """Enumeration failed closed instead of pretending the export is empty."""
-
-    def __init__(self, failure: SourceFailure):
-        self.failure = failure
-        super().__init__(f"{failure.code.value}: {failure.detail}")
 
 
 class TwitterExportAdapter:
@@ -502,4 +495,4 @@ class TwitterExportAdapter:
         ).encode("utf-8")
 
 
-__all__ = ["SourceEnumerationError", "TwitterExportAdapter"]
+__all__ = ["TwitterExportAdapter"]
