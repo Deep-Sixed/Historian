@@ -104,9 +104,9 @@ The adapter fails closed with typed `SourceFailure` values for:
 - archive member escape
 - duplicate zip member names
 
-Record enumeration raises `SourceEnumerationError` with a typed `SourceFailure` rather
-than returning an empty iterator for malformed or unavailable exports. A valid export with
-zero tweets still enumerates as empty.
+Record enumeration raises the shared `SourceEnumerationError` with a typed
+`SourceFailure` rather than returning an empty iterator for malformed or unavailable
+exports. A valid export with zero tweets still enumerates as empty.
 
 Verification re-reads the current archive data before trusting a pointer, so mutation
 after pointer creation fails closed instead of validating against stale cached bytes.

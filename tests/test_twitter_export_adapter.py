@@ -8,6 +8,7 @@ from historian.source_adapter import (
     CoordinatePart,
     EvidenceLocator,
     SourceCoordinate,
+    SourceEnumerationError,
     SourceFailure,
     SourceFailureCode,
     SourcePointer,
@@ -15,7 +16,7 @@ from historian.source_adapter import (
     VerifiedSource,
     sha256_bytes,
 )
-from historian.twitter_export import SourceEnumerationError, TwitterExportAdapter
+from historian.twitter_export import TwitterExportAdapter
 
 
 def js_assignment(name, payload):
