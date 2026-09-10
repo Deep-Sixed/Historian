@@ -63,6 +63,11 @@ particular source collection, account or export lineage without requiring expose
 `record_id` identifies the logical record inside that instance. `version_hash` identifies
 the immutable record version.
 
+Enumeration failure is also part of the shared contract. Adapters raise
+`SourceEnumerationError` with a typed `SourceFailure` when a source is malformed,
+unavailable or otherwise unverifiable during record enumeration. Returning an empty
+iterator means the source is valid and contains no records.
+
 The durable source identity is:
 
 ```text
@@ -117,6 +122,7 @@ representation. Adapters may define coordinates such as `MESSAGE_PART`, `JSON_PO
 
 ```text
 SourceAdapter
+|-- TwitterExportAdapter
 |-- ChatGPTExportAdapter
 `-- GoogleTakeoutAdapter
     |-- Gmail
@@ -125,10 +131,10 @@ SourceAdapter
     `-- Keep
 ```
 
-ChatGPT export and Google Takeout are different export families. They must not share a
-parser merely because both may arrive as archives. Google Takeout product areas may share
-archive traversal and containment checks, but Gmail, Drive, Calendar and Keep still own
-their own record identity, version and coordinate rules.
+Twitter export, ChatGPT export and Google Takeout are different export families. They
+must not share a parser merely because each may arrive as an archive. Google Takeout
+product areas may share archive traversal and containment checks, but Gmail, Drive,
+Calendar and Keep still own their own record identity, version and coordinate rules.
 
 ## Fail-Closed Reasons
 
