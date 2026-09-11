@@ -3,6 +3,32 @@ from .contract import Access as A
 from .contract import Boundary as B
 from .contract import BoundaryTest, PersistenceInvariant
 
+# Explicit proof obligations, not inferred from an invariant's property list. A successful
+# happy-path insert alone does not establish uniqueness, immutability or access isolation.
+PROBE_PROPERTIES = {
+    'PV01': {'normal': ('referential_integrity',), 'bypass': ('referential_integrity',)},
+    'PV02': {'normal': ('referential_integrity',), 'bypass': ('referential_integrity',)},
+    'PV03': {'normal': ('referential_integrity',), 'bypass': ('referential_integrity',)},
+    'PV04': {'normal': (), 'duplicate': ('durable_uniqueness',)},
+    'PV05': {'normal': ('atomicity',), 'bypass': ('immutability',)},
+    'PV06': {'normal': ('immutability',), 'bypass': ('tamper_resistance',)},
+    'PV07': {'normal': ('authenticated_identity',), 'bypass': ('authenticated_identity',)},
+    'PV08': {'normal': (), 'negative': ('capability_isolation',),
+             'bypass': ('capability_isolation',), 'anonymous': ('authenticated_identity',)},
+    'PV09': {'normal': ('referential_integrity',), 'bypass': ('referential_integrity',)},
+    'PV10': {'delete': ('tamper_resistance',), 'truncate': ('immutability',)},
+    'PV11': {'normal': ('referential_integrity',), 'integrity': ('durable_uniqueness',)},
+    'PV12': {'normal': ('referential_integrity',), 'integrity': ('referential_integrity',)},
+    'PV13': {'commit': ('atomicity',), 'rollback': ('atomicity',), 'visibility': ('atomicity',)},
+    'PV14': {'normal': (), 'bypass': ('capability_isolation',)},
+    'PV15': {'normal': ('immutability',), 'bypass': ('capability_isolation',)},
+    'PV16': {'normal': ('source_integrity',), 'negative': ('source_integrity',)},
+    'PV17': {'normal': ('authenticated_identity',), 'bypass': ('capability_isolation',)},
+    'PV18': {'normal': ('referential_integrity',), 'bypass': ('capability_isolation',)},
+    'PV19': {'normal': ('referential_integrity',), 'bypass': ('referential_integrity',)},
+    'PV20': {'normal': ('authenticated_identity',), 'bypass': ('authenticated_identity',)},
+}
+
 
 def invariant(key, description, properties, probes, boundaries=(B.DATABASE,)):
     return PersistenceInvariant(
@@ -10,7 +36,8 @@ def invariant(key, description, properties, probes, boundaries=(B.DATABASE,)):
         ('Input validation may reject earlier; it is not boundary proof.',),
         'Reject without publishing a partial or falsely attributed durable artifact; '
         'retain prior committed history. Unavailable proof is NOT_TESTED.',
-        tuple(BoundaryTest(f'{key}.{suffix}', key, access, scenario, expected)
+        tuple(BoundaryTest(f'{key}.{suffix}', key, access, scenario, expected,
+                           PROBE_PROPERTIES[key][suffix])
               for suffix, access, scenario, expected in probes))
 
 

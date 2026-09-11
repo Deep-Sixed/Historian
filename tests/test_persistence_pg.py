@@ -28,7 +28,12 @@ def test_postgresql_profile_conformance(request):
                                      '/tmp/historian-persistence-conformance.json'))
     destination.write_text(json.dumps(asdict(report), indent=2,
                                      default=lambda v: v.value if isinstance(v, Enum) else str(v)))
-    print(f'\n{report.profile_name} version {report.profile_version}: {report.status.value}')
+    print(f'\n{report.profile_name} version {report.profile_version} '
+          f'digest {report.profile_digest}: {report.status.value}')
+    assert report.profile_digest == POSTGRESQL.digest
+    assert all(e.profile_digest == report.profile_digest for e in report.evidence)
+    assert all(e.access is e.expected_access and e.actor and e.capability_class
+               for e in report.evidence)
     # Known violations remain failures IN THE REPORT. This regression gate ensures they
     # are observed; it does not award CONFORMS or skip them to make a green CI badge.
     expected_gaps = {'PV05.bypass', 'PV11.normal', 'PV11.integrity',

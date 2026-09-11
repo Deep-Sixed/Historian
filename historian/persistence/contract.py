@@ -1,5 +1,7 @@
 """Persistence v1: guarantees and evidence, independent of backend mechanisms."""
-from dataclasses import dataclass
+import hashlib
+import json
+from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Protocol
 from uuid import uuid4
@@ -31,6 +33,7 @@ class BoundaryTest:
     access: Access
     scenario: str
     expected: str
+    proves_properties: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -67,12 +70,26 @@ class PersistenceProfile:
         if not self.name or type(self.version) is not int or self.version < 1:
             raise ValueError('exact profile name and positive version required')
 
+    @property
+    def digest(self) -> str:
+        """Canonical UTF-8 JSON: sorted object keys, preserved sequence order, enum values.
+
+        Every profile field, including the complete threat model, participates. No secret
+        values belong in a profile. Sequence reordering deliberately changes the digest.
+        """
+        canonical = json.dumps(asdict(self), sort_keys=True, separators=(',', ':'),
+                               ensure_ascii=False, default=lambda value: value.value)
+        return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
 
 @dataclass(frozen=True)
 class Observation:
     observed: str
     boundary: Boundary
     detail: str
+    access: Access | None
+    actor: str
+    capability_class: str
     tested: bool = True
 
 
@@ -81,11 +98,16 @@ class ConformanceEvidence:
     invariant_id: str
     profile_name: str
     profile_version: int
+    profile_digest: str
     test_id: str
     expected: str
     observed: str
     boundary: Boundary
-    access: Access
+    access: Access | None
+    expected_access: Access
+    actor: str
+    capability_class: str
+    proves_properties: tuple[str, ...]
     status: Status
     detail: str
     run_id: str
@@ -96,9 +118,11 @@ class ConformanceResult:
     profile_name: str
     profile_version: int
     backend_family: str
+    profile_digest: str
     status: Status
     evidence: tuple[ConformanceEvidence, ...]
     run_id: str
+    missing_properties: tuple[tuple[str, tuple[str, ...]], ...]
     contract_version: str = '1'
 
 
@@ -130,28 +154,44 @@ class ConformanceHarness:
             raise ValueError('profile claims unknown invariants')
         run_id = uuid4().hex
         evidence = []
+        missing_properties = []
+        digest = profile.digest
         # Coverage claims do not reduce the mandatory catalog.
         for invariant in self.catalog:
+            proven = set()
             for test in invariant.conformance_tests:
                 try:
                     obs = adapter.execute(test)
                 except Exception as exc:  # noqa: BLE001 - unavailable probes cannot earn conformance
                     # Do not serialize connection strings, source payloads or exception text.
                     obs = Observation('', invariant.permitted_boundaries[0],
-                                      f'probe unavailable: {type(exc).__name__}', tested=False)
+                                      f'probe unavailable: {type(exc).__name__}',
+                                      access=None, actor='', capability_class='', tested=False)
                 if not obs.tested:
                     status = Status.NOT_TESTED
                 elif (obs.boundary not in invariant.permitted_boundaries
                       or obs.boundary not in profile.trusted_boundaries
-                      or obs.observed != test.expected):
+                      or obs.observed != test.expected
+                      or obs.access is not test.access
+                      or not obs.actor.strip() or not obs.capability_class.strip()):
                     status = Status.DOES_NOT_CONFORM
                 else:
                     status = Status.CONFORMS
+                properties = test.proves_properties if status is Status.CONFORMS else ()
+                proven.update(properties)
                 evidence.append(ConformanceEvidence(
-                    invariant.id, profile.name, profile.version, test.id, test.expected,
-                    obs.observed, obs.boundary, test.access, status, obs.detail, run_id))
+                    invariant_id=invariant.id, profile_name=profile.name,
+                    profile_version=profile.version, profile_digest=digest,
+                    test_id=test.id, expected=test.expected, observed=obs.observed,
+                    boundary=obs.boundary, access=obs.access, expected_access=test.access,
+                    actor=obs.actor, capability_class=obs.capability_class,
+                    proves_properties=properties, status=status, detail=obs.detail, run_id=run_id))
+            missing = set(invariant.required_boundary_properties) - proven
+            if missing:
+                missing_properties.append((invariant.id, tuple(sorted(missing))))
         states = {e.status for e in evidence}
         status = (Status.DOES_NOT_CONFORM if Status.DOES_NOT_CONFORM in states else
-                  Status.NOT_TESTED if Status.NOT_TESTED in states else Status.CONFORMS)
+                  Status.NOT_TESTED if Status.NOT_TESTED in states or missing_properties
+                  else Status.CONFORMS)
         return ConformanceResult(profile.name, profile.version, profile.backend_family,
-                                 status, tuple(evidence), run_id)
+                                 digest, status, tuple(evidence), run_id, tuple(missing_properties))
