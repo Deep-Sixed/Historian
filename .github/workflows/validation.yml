@@ -100,7 +100,8 @@ jobs:
           report = Path(os.environ["HISTORIAN_CONFORMANCE_REPORT"])
           if report.exists():
               data = json.loads(report.read_text())
-              result = f"{data['profile_name']} version {data['profile_version']}: {data['status']}"
+              result = (f"{data['profile_name']} version {data['profile_version']} "
+                        f"digest {data['profile_digest']}: {data['status']}")
           else:
               result = "postgresql-role-isolated-v1 version 1: NOT_TESTED (report unavailable)"
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:

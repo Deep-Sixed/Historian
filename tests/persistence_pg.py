@@ -1,29 +1,43 @@
 """Disposable PostgreSQL probe adapter. Not a production repository implementation."""
 import hashlib
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
 
 import psycopg
 
 from historian.capability import EvidenceVerificationError, EvidenceVerifier
-from historian.persistence.contract import Boundary, Observation
+from historian.persistence.contract import Access, Boundary, Observation
 from historian.sources import RagV1SourceReader, SourceRegistry
 
 
 class PostgreSQLProbe:
     def __init__(self, connect, packet_id):
-        self.connect = connect
+        self._connect = connect
         self.packet_id = packet_id
+
+    @contextmanager
+    def connect(self, role):
+        # Report principals actually authenticated by PostgreSQL, never caller payloads.
+        with self._connect(role) as connection:
+            principal = connection.execute('SELECT session_user').fetchone()[0]
+            self.principals.add(principal)
+            self.capabilities.add(role)
+            yield connection
 
     def execute(self, test):
         scenario = test.scenario
+        self.principals = set()
+        self.capabilities = set()
+        self.access = Access.NORMAL
         if scenario.startswith('source_'):
             return self.source(scenario)
-        with self.connect('historian_owner') as c:
+        with self._connect('historian_owner') as c:
             version = c.execute('SHOW server_version_num').fetchone()[0]
         if int(version) // 10000 != 18:
-            return Observation('', Boundary.DATABASE, 'Profile requires PostgreSQL 18', False)
+            return Observation('', Boundary.DATABASE, 'Profile requires PostgreSQL 18',
+                               None, '', '', tested=False)
         try:
             observed = self.probe(scenario)
         except psycopg.Error as exc:
@@ -43,7 +57,9 @@ class PostgreSQLProbe:
                 raise
             observed = 'rejected'
         return Observation(observed, Boundary.DATABASE,
-                           f'Executed {scenario}; server_version_num={version}')
+                           f'Executed raw SQL {scenario}; server_version_num={version}',
+                           self.access, ','.join(sorted(self.principals)),
+                           ','.join(sorted(self.capabilities)))
 
     def resolution(self, c, rid, route=None, question='q1'):
         c.execute('''INSERT INTO resolution
@@ -51,20 +67,23 @@ class PostgreSQLProbe:
             VALUES (%s,%s,'RESOLVED','DETERMINISTIC_RULE','answer',%s)''',
                   (rid, question, route))
 
-    def evidence(self, c, eid, identity='forged'):
+    def evidence(self, c, eid, identity='forged', version='version', quote='quote'):
         c.execute('''INSERT INTO evidence_ref
             (id,source_id,source_system,source_version_hash,line_start,line_end,
              passage_hash,quote,verified_by)
-            VALUES (%s,'doc','RAG_V1','version',1,1,'hash','quote',%s)''', (eid, identity))
+            VALUES (%s,'doc','RAG_V1',%s,1,1,%s,%s,%s)''',
+                  (eid, version, hashlib.sha256(quote.encode()).hexdigest(), quote, identity))
 
     def probe(self, scenario):
         rid = 'pv-' + uuid4().hex
         if scenario in ('seed_same_question', 'seed_different_text'):
+            self.access = (Access.NORMAL if scenario == 'seed_same_question' else Access.BYPASS)
             with self.connect('historian_case_designer') as c:
                 text = 'what?' if scenario == 'seed_same_question' else 'different'
                 c.execute('INSERT INTO gold_case_seed(id,question_id,question_text,family) '
                           "VALUES (%s,'q1',%s,'test')", (rid, text))
         elif scenario in ('claim_same_question', 'claim_cross_question'):
+            self.access = Access.NORMAL if scenario == 'claim_same_question' else Access.BYPASS
             with self.connect('historian_extractor') as c:
                 q = 'q1' if scenario == 'claim_same_question' else 'q2'
                 c.execute('INSERT INTO claim_proposal(id,evidence_id,question_id,claim,extractor_id) '
@@ -73,6 +92,7 @@ class PostgreSQLProbe:
                 self.resolution(c, rid)
                 c.execute('INSERT INTO resolution_claim_dep VALUES (%s,%s)', (rid, rid))
         elif scenario in ('route_same_question', 'route_cross_question'):
+            self.access = Access.NORMAL if scenario == 'route_same_question' else Access.BYPASS
             with self.connect('historian_extractor') as c:
                 q = 'q1' if scenario == 'route_same_question' else 'q2'
                 c.execute('''INSERT INTO routing_proposal
@@ -81,12 +101,15 @@ class PostgreSQLProbe:
             with self.connect('historian_runtime') as c:
                 self.resolution(c, rid, route=rid)
         elif scenario in ('new_identity', 'duplicate_identity'):
+            self.access = Access.NORMAL if scenario == 'new_identity' else Access.TRANSACTION
             with self.connect('historian_runtime') as c:
                 self.resolution(c, rid)
                 if scenario == 'duplicate_identity':
                     self.resolution(c, rid)
         elif scenario in ('resolution_complete', 'append_published_dependency',
                           'existing_dependency', 'missing_dependency'):
+            self.access = (Access.BYPASS if scenario in
+                           ('append_published_dependency', 'missing_dependency') else Access.NORMAL)
             with self.connect('historian_runtime') as c, c.transaction():
                 self.resolution(c, rid)
                 eid = 'missing-' + rid if scenario == 'missing_dependency' else 'e1'
@@ -95,8 +118,20 @@ class PostgreSQLProbe:
             if scenario == 'append_published_dependency':
                 with self.connect('historian_runtime') as c:
                     c.execute("INSERT INTO resolution_evidence VALUES (%s,'e2')", (rid,))
-        elif scenario in ('new_evidence_version', 'update_evidence', 'delete_evidence',
+        elif scenario == 'new_evidence_version':
+            with self.connect('historian_evidence_verifier') as c:
+                self.evidence(c, rid, version='v1', quote='original')
+                original = c.execute('SELECT * FROM evidence_ref WHERE id=%s', (rid,)).fetchone()
+                self.evidence(c, rid + '-revision', version='v2', quote='revised')
+            with self.connect('historian_evidence_verifier') as c:
+                unchanged = c.execute('SELECT * FROM evidence_ref WHERE id=%s', (rid,)).fetchone()
+                revision = c.execute('SELECT source_version_hash,quote FROM evidence_ref '
+                                     'WHERE id=%s', (rid + '-revision',)).fetchone()
+            return ('accepted' if original is not None and unchanged == original
+                    and revision == ('v2', 'revised') else 'lost')
+        elif scenario in ('update_evidence', 'delete_evidence',
                           'truncate_evidence', 'verifier_identity', 'forged_verifier_identity'):
+            self.access = Access.NORMAL if scenario == 'verifier_identity' else Access.BYPASS
             with self.connect('historian_evidence_verifier') as c:
                 self.evidence(c, rid, 'historian_evidence_verifier' if scenario ==
                               'verifier_identity' else 'pretend-owner')
@@ -111,6 +146,9 @@ class PostgreSQLProbe:
                                        (rid,)).fetchone()[0]
                     return 'authenticated' if actual == 'historian_evidence_verifier' else 'forged'
         elif scenario in ('extractor_candidate', 'extractor_evidence', 'extractor_assume_verifier'):
+            self.access = {'extractor_candidate': Access.NORMAL,
+                           'extractor_evidence': Access.UNAUTHORIZED,
+                           'extractor_assume_verifier': Access.BYPASS}[scenario]
             with self.connect('historian_extractor') as c:
                 if scenario == 'extractor_evidence':
                     self.evidence(c, rid)
@@ -124,6 +162,9 @@ class PostgreSQLProbe:
                          extraction_run_id)
                         VALUES (%s,'RAG_V1','doc','v',1,1,'quote','model','run')''', (rid,))
         elif scenario == 'unauthenticated_connection':
+            self.access = Access.BYPASS
+            self.principals.add('unauthenticated connection attempt')
+            self.capabilities.add('invalid credential for historian_extractor')
             import os
             try:
                 with psycopg.connect(host=os.environ['HISTORIAN_PGHOST'],
@@ -138,6 +179,8 @@ class PostgreSQLProbe:
                     raise
                 return 'rejected'
         elif scenario.startswith(('locator_', 'coordinate_')):
+            self.access = (Access.TRANSACTION if scenario in
+                           ('locator_instance_collision', 'coordinate_distinction') else Access.NORMAL)
             with self.connect('historian_evidence_verifier') as c:
                 try:
                     if scenario.startswith('coordinate_'):
@@ -155,6 +198,7 @@ class PostgreSQLProbe:
             # A permissive enum alone cannot prove a lossless locator/coordinate round-trip.
             raise NotImplementedError('Full locator storage adapter still required')
         elif scenario.startswith('transaction_'):
+            self.access = Access.TRANSACTION
             with self.connect('historian_runtime') as c:
                 try:
                     with c.transaction():
@@ -179,6 +223,7 @@ class PostgreSQLProbe:
                 return 'absent'
             return 'complete' if row and deps == 1 else 'partial'
         elif scenario in ('blind_view', 'blind_read_proposals'):
+            self.access = Access.NORMAL if scenario == 'blind_view' else Access.BYPASS
             with self.connect('adj_alice') as c:
                 if scenario == 'blind_read_proposals':
                     c.execute('SELECT * FROM proposed_relation')
@@ -186,6 +231,7 @@ class PostgreSQLProbe:
                     assert c.execute('SELECT packet_id FROM blind_packet WHERE packet_id=%s',
                                      (self.packet_id,)).fetchone()
         elif scenario in ('finalized_packet', 'forge_finalization'):
+            self.access = Access.NORMAL if scenario == 'finalized_packet' else Access.BYPASS
             if scenario == 'forge_finalization':
                 with self.connect('historian_packet_builder') as c:
                     c.execute('INSERT INTO packet_finalization(packet_id,evidence_count,packet_hash) '
@@ -197,6 +243,7 @@ class PostgreSQLProbe:
                         VALUES (%s,%s,'ignored','RESOLVED','answer','probe')''',
                               (rid, self.packet_id))
         elif scenario in ('typed_assertion', 'typed_forge_human'):
+            self.access = Access.NORMAL if scenario == 'typed_assertion' else Access.BYPASS
             with self.connect('historian_typed_ingestor') as c:
                 human = scenario == 'typed_forge_human'
                 c.execute("""INSERT INTO asserted_relation
@@ -208,6 +255,8 @@ class PostgreSQLProbe:
                            'P1' if human else None))
         elif scenario in ('eligible_gold', 'insufficient_gold',
                           'human_identity', 'forged_human_identity'):
+            self.access = (Access.BYPASS if scenario in
+                           ('insufficient_gold', 'forged_human_identity') else Access.NORMAL)
             with self.connect('adj_alice') as c:
                 insufficient = scenario == 'insufficient_gold'
                 c.execute("""INSERT INTO blind_adjudication
@@ -226,6 +275,7 @@ class PostgreSQLProbe:
                 c.execute('INSERT INTO evaluation_gold(id,adjudication_id,allowed_abstention) '
                           'VALUES (%s,%s,false)', (rid, rid))
         elif scenario in ('candidate_binding', 'candidate_crosswire'):
+            self.access = Access.NORMAL if scenario == 'candidate_binding' else Access.BYPASS
             with self.connect('historian_extractor') as c:
                 c.execute("""INSERT INTO evidence_candidate
                     (id,proposed_source_system,proposed_source_id,proposed_version_hash,
@@ -264,4 +314,6 @@ class PostgreSQLProbe:
             except EvidenceVerificationError:
                 result = 'rejected' if not writes else 'partial'
             return Observation(result, Boundary.TRUSTED_SERVICE,
-                               'Real EvidenceVerifier and RagV1SourceReader on synthetic bytes')
+                               'Real EvidenceVerifier and RagV1SourceReader on synthetic bytes',
+                               Access.NORMAL if scenario == 'source_verified' else Access.UNAUTHORIZED,
+                               'verifier', 'trusted EvidenceVerifier service')

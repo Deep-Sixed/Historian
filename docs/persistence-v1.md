@@ -3,7 +3,7 @@
 **Persistence conformance applies to a backend together with an exact named and
 versioned deployment/security profile. A database engine does not conform in isolation.**
 
-The target is `backend + profile name + profile version + executed evidence`.
+The target is `backend + profile name + profile version + canonical profile digest + executed evidence`.
 This specification is contract version **1**. The initial candidate is
 `postgresql-role-isolated-v1`, profile version **1**. PostgreSQL has no exemptions.
 Its current result is **DOES_NOT_CONFORM**, not a grandfathered reference success.
@@ -18,14 +18,24 @@ The executable definitions live in `historian/persistence/`:
   model, trusted and excluded/untrusted boundaries, coverage claims, and threat model.
 - `ThreatModel`: actors, access assumptions and excluded threats. Excluded threats are
   assumptions to inspect, not convenient excuses for failed bypass probes.
-- `BoundaryTest`: scenario, invariant ID, expected observation and access class.
+- `BoundaryTest`: scenario, invariant ID, expected observation, required access class and
+  explicit `proves_properties` obligations.
 - `ConformanceEvidence`: exact profile/version, invariant, probe, expected/observed result,
-  boundary, access class, run ID, status and a safe diagnostic.
+  boundary, actual and expected access classes, actual actor/principal and capability class,
+  successfully proven properties, profile digest, run ID, status and a safe diagnostic.
 - `ConformanceResult`: exact profile/version/backend, contract version, run ID, evidence
-  and aggregate status. Evidence from an earlier profile version cannot certify a new one.
+  profile digest, missing property coverage and aggregate status. Evidence from an earlier
+  profile definition cannot certify a new one.
 
 A profile change that affects access, authentication, enforcement or deployment assumptions
-requires a new profile version and fresh evidence. CI artifacts are additionally associated
+requires a new profile version and fresh evidence. Every result and evidence item also binds
+SHA-256 of the canonical complete profile definition: UTF-8 JSON, sorted object keys, compact
+separators, enum values and preserved sequence ordering. This includes the full credential,
+deployment, trust and threat models. Changing a definition without bumping its version still
+changes its digest, preventing silent reuse of old evidence. Reordering a sequence also changes
+the digest deliberately. Profile version bumps remain mandatory policy; the digest detects an
+omitted bump rather than authorizing it. The JSON artifact and CI summary include the digest.
+CI artifacts are additionally associated
 with their Git commit and workflow run. Results are not portable to an untested deployment.
 
 ### Boundaries and properties
@@ -144,8 +154,22 @@ round-trip is not claimed as proof of database persistence. No schema workaround
 
 `ConformanceHarness` runs every catalog scenario through a `BackendProbe`. Adapters provide
 actual observations, not their own PASS status or expected values. The harness binds each
-observation to the current exact profile/run, checks the permitted and trusted boundary,
-and compares it with the shared expected result. It never obtains success from configuration
+observation to the current exact profile definition digest/run, checks the permitted and
+trusted boundary, and compares it with the shared expected result. Observation carries actual
+access, actor/principal and capability class. The PostgreSQL adapter records authenticated
+`session_user` values from connections it really opened and reports access from its executed
+scenario branch, independently of the test's requested access. An authentication-failure probe
+identifies the unauthenticated attempt and attempted credential class, not a successful principal.
+No secret values are included. A NORMAL observation cannot satisfy a BYPASS test; absent actor
+or capability metadata cannot earn conformance. Evidence retains actual and expected access
+separately so mismatches remain visible.
+
+Every BoundaryTest explicitly declares which properties it proves. Only successful mandatory
+probes contribute those properties. For each invariant their union must cover every required
+boundary property. Uncovered properties appear in `missing_properties`; absent proof makes
+the result NOT_TESTED, while an executed contradiction takes precedence as DOES_NOT_CONFORM.
+The catalog's explicit probe-property mapping does not infer coverage from the invariant's
+property list. Adding a required property without adding proof cannot silently pass. It never obtains success from configuration
 inspection alone. Probe implementations and evidence collection are trusted test code and
 must be reviewed; an adapter that simply echoes expectations is not conformance proof.
 
@@ -155,15 +179,20 @@ use its real credentials and raw SQL. The service-required source probes invoke 
 EvidenceVerifier with synthetic source bytes and a recording sink. The existing source and
 PostgreSQL integration suites continue to test their respective paths.
 
-- `CONFORMS`: every mandatory probe ran and met the contract at a permitted trusted boundary.
+- `CONFORMS`: every mandatory probe ran through its required access path at a permitted trusted
+  boundary with actor/capability attribution, and successful probes cover all required properties.
 - `DOES_NOT_CONFORM`: at least one executed probe demonstrated a violation, even if other
-  evidence is missing.
+  evidence or property coverage is missing.
 - `NOT_TESTED`: no demonstrated violation, but at least one probe could not execute.
 
 Errors retain their exception type only, never raw connection strings or credentials.
 Unexpected database exceptions are not counted as successful authorization denial. Negative
 SQL probes check the intended SQLSTATE. Rejections must leave previous committed history
 intact; transaction probes check rollback and visibility through another authenticated connection.
+The PV06 positive probe commits V1 under identity A, then revised V2 under identity B,
+reopens a connection, and checks that A is unchanged and both versions remain addressable.
+Inserting a single row cannot satisfy its revision scenario.
+
 Power-loss recovery, host compromise and arbitrary service compromise are not certified by
 these tests. CONFORMS does not mean source assertions are true, source archives complete, or
 adjudication business policy correct.
