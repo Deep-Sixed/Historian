@@ -101,7 +101,9 @@ For PV17, the service derives `writer_principal` and `writer_capability` from `S
 passes the requested origin through to storage. libSQL is the component that accepts or rejects the
 origin/principal/capability tuple. Request fields such as `principal`, `writer`, `role` or
 `writer_capability` cannot override the kernel-derived context, and there is no raw-SQL or
-capability-context setter endpoint.
+capability-context setter endpoint. The named `assertion_origin_binding` CHECK produces an
+exact driver failure signature, sanitized to `assertion_origin_binding` by the service.
+PV17 rejection evidence requires that error; unrelated storage failures leave the probe unavailable.
 
 The immutable DML triggers are not protection against the trusted storage owner dropping tables,
 disabling constraints or editing the file. The tested OS boundary prevents ordinary capability

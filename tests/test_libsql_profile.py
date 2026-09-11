@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from enum import Enum
 from pathlib import Path
 from uuid import uuid4
@@ -18,7 +18,7 @@ from libsql_probe import ROLES, LibSQLProbe, locator
 
 from historian.libsql_store.profile import LIBSQL
 from historian.persistence.catalog import CATALOG
-from historian.persistence.contract import ConformanceHarness, Status
+from historian.persistence.contract import Access, ConformanceHarness, Status
 
 pytestmark = pytest.mark.libsql
 
@@ -238,8 +238,69 @@ def test_assertion_origin_binding_is_enforced_by_database(deployment):
         origin="TYPED_SOURCE",
     )
     assert typed_ok["ok"] and reviewer_ok["ok"]
-    assert not typed_bad["ok"] and typed_bad["error"] != "forbidden"
-    assert not reviewer_bad["ok"] and reviewer_bad["error"] != "forbidden"
+    assert not typed_bad["ok"] and typed_bad["error"] == "assertion_origin_binding"
+    assert (
+        not reviewer_bad["ok"] and reviewer_bad["error"] == "assertion_origin_binding"
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        "forbidden",
+        "ValueError",
+        "RuntimeError",
+        "database locked",
+        "disk I/O error",
+        "FOREIGN KEY constraint failed",
+        "CHECK constraint failed: other_constraint",
+    ],
+)
+def test_pv17_unrelated_rejection_cannot_earn_conformance(error):
+    invariant = next(i for i in CATALOG if i.id == "PV17")
+    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
+    probe = LibSQLProbe.__new__(LibSQLProbe)
+
+    class RejectionProbe:
+        def execute(self, test):
+            return probe.assertion_db_result(
+                {
+                    "ok": test.id == "PV17.normal",
+                    "error": error,
+                    "principal": "uid:10004",
+                    "capability": "typed",
+                },
+                test.access,
+            )
+
+    result = ConformanceHarness((invariant,)).run(profile, RejectionProbe())
+    bypass = next(e for e in result.evidence if e.test_id == "PV17.bypass")
+    assert bypass.status is Status.NOT_TESTED
+    assert result.status is not Status.CONFORMS
+
+
+def test_pv17_specific_constraint_rejection_earns_conformance(deployment):
+    probe, _, _ = deployment
+    invariant = next(i for i in CATALOG if i.id == "PV17")
+    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
+    result = ConformanceHarness((invariant,)).run(profile, probe)
+    assert result.status is Status.CONFORMS
+
+
+def test_assertion_unrelated_database_error_is_not_origin_binding(deployment):
+    probe, _, _ = deployment
+    probe.setup()
+    result = probe.call(
+        "typed",
+        "assertion",
+        id=uuid4().hex,
+        subject_id="missing-evidence",
+        object_id=probe.e2,
+        origin="TYPED_SOURCE",
+    )
+    assert not result["ok"] and result["error"] == "ValueError"
+    with pytest.raises(RuntimeError, match="not proven"):
+        probe.assertion_db_result(result, Access.BYPASS)
 
 
 def test_assertion_request_body_cannot_override_principal_or_capability(deployment):
@@ -286,7 +347,7 @@ def test_direct_inconsistent_assertion_tuple_is_rejected_by_database(deployment)
         )
     )
     assert not result["ok"]
-    assert "CHECK" in result.get("detail", "").upper()
+    assert result["detail"] == "CHECK constraint failed: assertion_origin_binding"
 
 
 def test_canonical_coordinates_and_revisions_survive_restart(deployment):

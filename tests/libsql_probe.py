@@ -124,8 +124,8 @@ class LibSQLProbe:
         )
 
     def assertion_db_result(self, result, access):
-        if not result["ok"] and result.get("error") == "forbidden":
-            raise RuntimeError("assertion rejected before database boundary")
+        if not result["ok"] and result.get("error") != "assertion_origin_binding":
+            raise RuntimeError("assertion origin-binding rejection not proven")
         return Observation(
             self.accepted(result),
             Boundary.DATABASE,
