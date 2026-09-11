@@ -1,14 +1,15 @@
-# libSQL Linux peer-credential service, profile v1
+# libSQL Linux peer-credential service, profile v2
 
 **Conformance belongs to a backend plus an exact deployment/security profile, not an engine.**
-This implementation is `libsql-linux-peercred-service-v1`, version **1**. Its complete definition
+This implementation is `libsql-linux-peercred-service-v1`, version **2**. Its complete definition
 and SHA-256 digest are in `historian/libsql_store/profile.py`. It uses the unchanged Persistence v1
 20-invariant / 43-probe catalog, property obligations, access classes, harness and evidence format.
 
-The tested result is **DOES_NOT_CONFORM**. PV17.normal and PV17.bypass correctly identify the
-assertion-origin rule as service-enforced, but the catalog permits only database enforcement for
-PV17. Both probes therefore fail the placement requirement. The ordinary test suite verifies
-this failure remains visible; a green CI badge does not confer compliance.
+The tested result is **CONFORMS** when all deployment probes pass. Profile v2 changes only the
+PV17 assertion-origin enforcement placement: Linux `SO_PEERCRED` still authenticates the caller,
+and libSQL now enforces that the persisted assertion origin is compatible with the authenticated
+principal/capability tuple. The Persistence v1 catalog, PV17 permitted boundaries, harness and
+expected probe results are unchanged.
 
 ## Actual deployment boundary
 
@@ -30,8 +31,8 @@ cannot replace it. Startup rejects unsafe database/socket directory ownership or
 | 10001 | extractor | Candidate, claim and route creation |
 | 10002 | trusted verifier | Evidence intake, configured-source verification, evidence readback |
 | 10003 | designer | Question and frozen seed creation |
-| 10004 | typed ingestor | TYPED_SOURCE assertions |
-| 10005 | human reviewer | HUMAN_REVIEWED_PROPOSAL assertions |
+| 10004 | typed ingestor | Assertions whose stored context satisfies the libSQL typed constraint |
+| 10005 | human reviewer | Assertions whose stored context satisfies the libSQL reviewer constraint |
 | 10006 | runtime | Atomic resolution publication and published readback |
 | 10007 | packet builder | Complete packet creation/finalization |
 | 10008 | adjudicator | Blind packet view and human verdict insertion |
@@ -42,8 +43,10 @@ Each capability means a separate OS identity. Do not run ordinary callers as the
 root, or another capability UID. Processes sharing a UID share all its authority. In this
 version there is one adjudicator identity; the service records `uid:10008`, not an unverified
 human name supplied by a request. Mapping that account to a real human is the operator's task.
-Adding identities, remote authentication, shared credentials, namespace mappings or another
-service access model requires a revised profile and fresh evidence.
+The assertion table stores both the requested origin and the authenticated context. For this exact
+profile, libSQL accepts only `uid:10004` / `typed` / `TYPED_SOURCE` and `uid:10005` / `reviewer` /
+`HUMAN_REVIEWED_PROPOSAL`. Adding identities, remote authentication, shared credentials, namespace
+mappings or another service access model requires a revised profile and fresh evidence.
 
 The Docker image supplies the filesystem ownership. A persistent deployment must use a private
 volume for `/data`, populated with the image's service-owned directories. It must not mount
@@ -91,11 +94,14 @@ coordinate values survive durable readback and service restart. Candidate-to-evi
 uses the canonical locator and anchor; claim/routing-to-question binding and all stored dependency
 identities use database foreign keys. Gold insertion rejects insufficient adjudications.
 
-Identity authentication, the operation allowlist, blind-reader access and assertion-origin
-selection are service mechanisms. Database constraints independently enforce identity uniqueness,
-question binding, referential integrity, mutation resistance and transactional publication.
-**PV17's service origin selection is not represented as a database guarantee**: its placement
-mismatch remains a failing result rather than being hidden by correct return values.
+Identity authentication, the operation allowlist and blind-reader access are service mechanisms.
+Database constraints independently enforce identity uniqueness, question binding, referential
+integrity, mutation resistance, transactional publication and assertion-origin compatibility.
+For PV17, the service derives `writer_principal` and `writer_capability` from `SO_PEERCRED` and
+passes the requested origin through to storage. libSQL is the component that accepts or rejects the
+origin/principal/capability tuple. Request fields such as `principal`, `writer`, `role` or
+`writer_capability` cannot override the kernel-derived context, and there is no raw-SQL or
+capability-context setter endpoint.
 
 The immutable DML triggers are not protection against the trusted storage owner dropping tables,
 disabling constraints or editing the file. The tested OS boundary prevents ordinary capability
@@ -121,8 +127,9 @@ and removes only that test container. It needs neither a host database mount nor
 credentials. Tests exercise all 43 shared scenarios, plus each of the nine capabilities and
 an unassigned UID attempting file access, mutation, service UID escalation and raw libSQL access.
 Each capability also attempts unsupported SQL/role/finalization/mutation socket operations.
-The restart test proves stored coordinates and evidence remain addressable after a new service
-process starts. Successful owner file access supplies the positive control for caller denials.
+The restart test proves stored coordinates, evidence and assertion attribution remain addressable
+after a new service process starts. Successful owner file access supplies the positive control for
+caller denials.
 
 Artifacts (default `/tmp/historian-libsql-artifacts/`):
 
@@ -143,11 +150,13 @@ summaries include exact name, version, digest and status. Missing artifacts say 
 |---|---|---|
 | postgresql-role-isolated-v1 v1 | DOES_NOT_CONFORM | PV05.bypass, PV11.normal/integrity, PV12.normal/integrity |
 | libsql-linux-peercred-service-v1 v1 | DOES_NOT_CONFORM | PV17.normal, PV17.bypass (service placement where DB required) |
+| libsql-linux-peercred-service-v1 v2 | CONFORMS | none |
 
 The PostgreSQL profile digest remains
 `cee528e2a6a00e5230c91079fe703e5971898229466667d81d1c966e13006906`.
-The libSQL profile digest is
+The historical v1 libSQL profile digest was
 `7dcacb02a640474c6d3ee1824512d093555f7e41f8efef7125edfcd9beb891d0`.
-Both digests are emitted by the harness and retained with the executed run.
-Repairing enforcement placement is future work; the invariant is not weakened in this PR.
+The v2 libSQL profile digest is
+`d87dd43b3a6826e4338539470b975b89d331539d9f4f689f537e56e7f1253d87`.
+Both versions are separate conformance claims because security-relevant enforcement changed.
 The three taxonomy/Twitter review findings remain untouched and retain their original blockers.

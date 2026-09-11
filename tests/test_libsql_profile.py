@@ -9,6 +9,7 @@ import time
 from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
@@ -113,8 +114,8 @@ def test_libsql_profile_conformance(deployment):
         e.test_id for e in report.evidence if e.status is Status.DOES_NOT_CONFORM
     }
     assert not untested, untested
-    assert failures == {"PV17.normal", "PV17.bypass"}
-    assert report.status is Status.DOES_NOT_CONFORM
+    assert failures == set()
+    assert report.status is Status.CONFORMS
     assert len(report.evidence) == 43
     assert all(e.profile_digest == LIBSQL.digest for e in report.evidence)
 
@@ -176,7 +177,14 @@ def test_real_callers_cannot_access_or_mutate_storage_or_assume_service_uid(
 @pytest.mark.parametrize("role", list(ROLES))
 def test_raw_socket_has_no_sql_role_switch_or_finalizer_escape(deployment, role):
     probe, _, _ = deployment
-    for operation in ("raw_sql", "set_role", "finalize", "delete", "update"):
+    for operation in (
+        "raw_sql",
+        "set_role",
+        "set_capability_context",
+        "finalize",
+        "delete",
+        "update",
+    ):
         result = probe.call(
             role, operation, sql="DELETE FROM evidence", role="verifier", uid=10000
         )
@@ -194,6 +202,93 @@ def test_raw_socket_has_no_sql_role_switch_or_finalizer_escape(deployment, role)
         assert result["principal"] == f"uid:{ROLES[role]}"
 
 
+def test_assertion_origin_binding_is_enforced_by_database(deployment):
+    probe, _, _ = deployment
+    probe.setup()
+    typed_ok = probe.call(
+        "typed",
+        "assertion",
+        id=uuid4().hex,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="TYPED_SOURCE",
+    )
+    typed_bad = probe.call(
+        "typed",
+        "assertion",
+        id=uuid4().hex,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="HUMAN_REVIEWED_PROPOSAL",
+    )
+    reviewer_ok = probe.call(
+        "reviewer",
+        "assertion",
+        id=uuid4().hex,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="HUMAN_REVIEWED_PROPOSAL",
+    )
+    reviewer_bad = probe.call(
+        "reviewer",
+        "assertion",
+        id=uuid4().hex,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="TYPED_SOURCE",
+    )
+    assert typed_ok["ok"] and reviewer_ok["ok"]
+    assert not typed_bad["ok"] and typed_bad["error"] != "forbidden"
+    assert not reviewer_bad["ok"] and reviewer_bad["error"] != "forbidden"
+
+
+def test_assertion_request_body_cannot_override_principal_or_capability(deployment):
+    probe, _, _ = deployment
+    probe.setup()
+    assertion_id = uuid4().hex
+    result = probe.call(
+        "typed",
+        "assertion",
+        id=assertion_id,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="TYPED_SOURCE",
+        writer_principal="uid:10005",
+        writer_capability="reviewer",
+        writer="uid:10005",
+        principal="uid:10005",
+        capability="reviewer",
+    )
+    assert result["ok"]
+    row = probe.sql(
+        (
+            "SELECT origin,writer_principal,writer_capability FROM assertion WHERE id=?",
+            (assertion_id,),
+        )
+    )
+    assert row["rows"] == [[["TYPED_SOURCE", "uid:10004", "typed"]]]
+
+
+def test_direct_inconsistent_assertion_tuple_is_rejected_by_database(deployment):
+    probe, _, _ = deployment
+    probe.setup()
+    result = probe.sql(
+        (
+            "INSERT INTO assertion VALUES (?,?,?,?,?,?)",
+            (
+                uuid4().hex,
+                probe.e,
+                probe.e2,
+                "HUMAN_REVIEWED_PROPOSAL",
+                "uid:10004",
+                "typed",
+            ),
+        )
+    )
+    assert not result["ok"]
+    assert "CHECK" in result.get("detail", "").upper()
+
+
 def test_canonical_coordinates_and_revisions_survive_restart(deployment):
     probe, process, start = deployment
     value = locator()
@@ -205,6 +300,16 @@ def test_canonical_coordinates_and_revisions_survive_restart(deployment):
     probe.ok(
         "verifier", "evidence", id="restart-evidence", locator=value, quote="retained"
     )
+    probe.setup()
+    assertion_id = uuid4().hex
+    assert probe.call(
+        "reviewer",
+        "assertion",
+        id=assertion_id,
+        subject_id=probe.e,
+        object_id=probe.e2,
+        origin="HUMAN_REVIEWED_PROPOSAL",
+    )["ok"]
     process.terminate()
     process.wait(timeout=10)
     Path(probe.socket).unlink()
@@ -216,6 +321,13 @@ def test_canonical_coordinates_and_revisions_survive_restart(deployment):
             {"name": "z", "value": ""},
         ]
         assert record["quote"] == "retained" and record["writer"] == "uid:10002"
+        row = probe.sql(
+            (
+                "SELECT origin,writer_principal,writer_capability FROM assertion WHERE id=?",
+                (assertion_id,),
+            )
+        )
+        assert row["rows"] == [[["HUMAN_REVIEWED_PROPOSAL", "uid:10005", "reviewer"]]]
     finally:
         replacement.terminate()
         replacement.wait(timeout=10)

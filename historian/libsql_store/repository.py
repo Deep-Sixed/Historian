@@ -128,3 +128,17 @@ class Repository:
                 c.execute("INSERT INTO packet_evidence VALUES (?,?)", (data["id"], eid))
             c.execute("INSERT INTO packet_seal VALUES (?)", (data["id"],))
         return data["id"]
+
+    def insert_assertion(self, data, principal, capability):
+        self.connection.execute(
+            "INSERT INTO assertion VALUES (?,?,?,?,?,?)",
+            (
+                data["id"],
+                data["subject_id"],
+                data["object_id"],
+                data["origin"],
+                principal,
+                capability,
+            ),
+        )
+        return data["id"]
