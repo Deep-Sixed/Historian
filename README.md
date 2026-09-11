@@ -16,3 +16,7 @@ The repository currently contains:
 - the first production adapter, `TwitterExportAdapter`
 
 Historian remains private while public-release safeguards are still under review.
+
+Persistence and security guarantees are specified in [Persistence v1](docs/persistence-v1.md).
+Conformance applies to an exact deployment profile; the current PostgreSQL candidate has
+known gaps and is not yet conforming.
