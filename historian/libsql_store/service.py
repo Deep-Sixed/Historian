@@ -193,7 +193,14 @@ class Handler(socketserver.StreamRequestHandler):
             response = {"ok": False, "error": "forbidden"}
         except Exception as exc:  # noqa: BLE001 - sanitize errors at the process boundary
             # No SQL payloads, sources, paths or secrets in remote error responses.
-            response = {"ok": False, "error": type(exc).__name__}
+            error = type(exc).__name__
+            # libsql 0.1.11 exposes constraint violations as ValueError. Match the
+            # entire named-CHECK signature; unrelated storage failures prove nothing.
+            if type(exc) is ValueError and str(exc) == (
+                "CHECK constraint failed: assertion_origin_binding"
+            ):
+                error = "assertion_origin_binding"
+            response = {"ok": False, "error": error}
         finally:
             if repository is not None:
                 repository.close()
