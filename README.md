@@ -20,3 +20,7 @@ Historian remains private while public-release safeguards are still under review
 Persistence and security guarantees are specified in [Persistence v1](docs/persistence-v1.md).
 Conformance applies to an exact deployment profile; the current PostgreSQL candidate has
 known gaps and is not yet conforming.
+
+An optional [libSQL Linux service profile](docs/libsql-profile-v1.md) implements the same
+contract with peer-credential capability isolation. Its independently reported conformance
+result currently remains DOES_NOT_CONFORM; PostgreSQL is not replaced.
