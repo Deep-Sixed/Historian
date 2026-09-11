@@ -36,7 +36,10 @@ CREATE TABLE IF NOT EXISTS packet_evidence(packet_id TEXT NOT NULL REFERENCES pa
 CREATE TABLE IF NOT EXISTS packet_seal(id TEXT PRIMARY KEY NOT NULL CHECK(length(id)>0) REFERENCES packet(id));
 CREATE TABLE IF NOT EXISTS assertion(id TEXT PRIMARY KEY NOT NULL CHECK(length(id)>0), subject_id TEXT NOT NULL REFERENCES evidence(id),
  object_id TEXT NOT NULL REFERENCES evidence(id), origin TEXT NOT NULL
- CHECK(origin IN ('TYPED_SOURCE','HUMAN_REVIEWED_PROPOSAL')), writer TEXT NOT NULL);
+ CHECK(origin IN ('TYPED_SOURCE','HUMAN_REVIEWED_PROPOSAL')), writer_principal TEXT NOT NULL,
+ writer_capability TEXT NOT NULL,
+ CHECK((writer_principal='uid:10004' AND writer_capability='typed' AND origin='TYPED_SOURCE')
+ OR (writer_principal='uid:10005' AND writer_capability='reviewer' AND origin='HUMAN_REVIEWED_PROPOSAL')));
 CREATE TABLE IF NOT EXISTS adjudication(id TEXT PRIMARY KEY NOT NULL CHECK(length(id)>0), packet_id TEXT NOT NULL REFERENCES packet_seal(id),
  human_id TEXT NOT NULL, verdict TEXT NOT NULL CHECK(verdict IN ('RESOLVED','UNRESOLVED','PACKET_INSUFFICIENT')),
  conclusion TEXT, CHECK(verdict!='RESOLVED' OR conclusion IS NOT NULL),

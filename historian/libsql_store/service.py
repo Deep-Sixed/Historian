@@ -125,13 +125,7 @@ def dispatch(repository, operation, data, role, principal, corpus):
     elif operation == "packet":
         return repository.create_packet(data)
     elif operation == "assertion":
-        required = "TYPED_SOURCE" if role == "typed" else "HUMAN_REVIEWED_PROPOSAL"
-        if data["origin"] != required:
-            raise PermissionError("origin denied")
-        c.execute(
-            "INSERT INTO assertion VALUES (?,?,?,?,?)",
-            (data["id"], data["subject_id"], data["object_id"], required, principal),
-        )
+        return repository.insert_assertion(data, principal, role)
     elif operation == "blind_packet":
         exists = c.execute(
             "SELECT id FROM packet_seal WHERE id=?", (data["id"],)

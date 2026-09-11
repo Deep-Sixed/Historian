@@ -134,7 +134,7 @@ jobs:
               message = (f"{report['profile_name']} v{report['profile_version']} "
                          f"digest {report['profile_digest']}: {report['status']}")
           else:
-              message = 'libsql-linux-peercred-service-v1 v1: NOT_TESTED (report unavailable)'
+              message = 'libsql-linux-peercred-service-v1 v2: NOT_TESTED (report unavailable)'
           print(message)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write(message + '\n')
