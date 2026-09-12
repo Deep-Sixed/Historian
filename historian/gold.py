@@ -61,9 +61,8 @@ class BlindAdjudication:
     id: str
     packet_id: str
     adjudicator_id: str
-    """In PostgreSQL this is OVERWRITTEN from the authenticated principal by trigger and a
-    submitted value is discarded: SCRAM proves the connection is the adjudicator SERVICE
-    role, never which human is at the keyboard, and G-S6 requires human provenance."""
+    """Overwritten by the service from SO_PEERCRED. Attribution identifies the
+    authenticated capability principal, not an independently verified human name."""
     verdict: AdjudicationVerdict
     rationale: str
     evidence_used: tuple[EvidenceRef, ...] = ()

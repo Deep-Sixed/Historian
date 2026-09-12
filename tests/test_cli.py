@@ -8,7 +8,7 @@ def test_default_profile_is_exact_and_does_not_claim_deployment_conformance(caps
     assert main(["profile"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result == {"backend": "libSQL", "profile": LIBSQL.name,
-                      "version": 2, "digest": LIBSQL.digest}
+                      "version": LIBSQL.version, "digest": LIBSQL.digest}
 
 
 def test_request_preserves_service_denial(tmp_path, monkeypatch, capsys):

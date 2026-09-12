@@ -76,17 +76,19 @@ def deployment():
     finally:
         process.terminate()
         process.wait(timeout=10)
-        Path("/tmp/historian-libsql-boundaries.json").write_text(
-            json.dumps(
-                {
-                    "profile_name": LIBSQL.name,
-                    "profile_version": LIBSQL.version,
-                    "profile_digest": LIBSQL.digest,
-                    "evidence": probe.boundary_evidence,
-                },
-                indent=2,
+        if probe.boundary_evidence:
+            Path("/tmp/historian-libsql-boundaries.json").write_text(
+                json.dumps(
+                    {
+                        "profile_name": LIBSQL.name,
+                        "profile_version": LIBSQL.version,
+                        "profile_digest": LIBSQL.digest,
+                        "evidence": probe.boundary_evidence,
+                    },
+                    indent=2,
+                )
             )
-        )
+
 
 
 def test_libsql_profile_conformance(deployment):

@@ -32,8 +32,14 @@ def transaction(connection):
         raise
 
 
-def _create_schema(c):
+def _create_schema(c, application=True):
     c.executescript(Path(__file__).with_name("schema.sql").read_text())
+    if application:
+        c.executescript(Path(__file__).with_name("application.sql").read_text())
+    _protect_tables(c)
+
+
+def _protect_tables(c):
     # Revision is INSERT with a new durable ID. Protect every committed row at SQL level.
     tables = [
         r[0]
@@ -52,10 +58,10 @@ def schema_definition(c):
                      "WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").fetchall()
 
 
-def validate_schema(c):
+def validate_schema(c, application=True):
     reference = connect(":memory:")
     try:
-        _create_schema(reference)
+        _create_schema(reference, application=application)
         if schema_definition(c) != schema_definition(reference):
             raise ValueError("unsupported schema; restore with its original release or re-ingest")
     finally:
@@ -166,3 +172,22 @@ class Repository:
             ),
         )
         return data["id"]
+
+
+def upgrade_schema(path):
+    c = connect(path)
+    try:
+        try:
+            validate_schema(c)
+            return
+        except ValueError:
+            validate_schema(c, application=False)
+        c.executescript("BEGIN IMMEDIATE;\n" + Path(__file__).with_name("application.sql").read_text())
+        _protect_tables(c)
+        validate_schema(c)
+        c.commit()
+    except Exception:
+        c.rollback()
+        raise
+    finally:
+        c.close()

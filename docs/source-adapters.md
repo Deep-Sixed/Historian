@@ -83,15 +83,14 @@ SourceSystem: RAG_V1, LEDGER, OTHER
 CoordinateSystem: LINE
 ```
 
-PostgreSQL uses the same closed source and line-span shape. New adapters therefore cannot
+The old evidence model used a closed source and line-span shape. New adapters therefore cannot
 truthfully feed `EvidenceRef` by mapping every external source to `OTHER`; that would
 destroy source-system isolation.
 
-PR #3 defines `EvidenceLocator` as the bridge between open-ended adapter provenance and
-current or future evidence rows. A later schema PR may persist this locator directly or
-map it into expanded evidence tables. Until then, the adjudication core can continue to
-consume trusted evidence identity while intake preserves full source provenance outside
-the closed enum boundary.
+The libSQL evidence table persists EvidenceLocator directly, including open-ended source
+identity and canonical structured coordinates. The older in-memory EvidenceRef model
+remains LINE-based; its bridge rejects unsupported coordinates instead of relabeling them.
+Adapter intake does not collapse arbitrary systems into OTHER.
 
 ## Version Hash
 

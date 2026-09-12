@@ -13,7 +13,7 @@ import struct
 import stat
 from pathlib import Path
 
-from historian.libsql_store.repository import Repository, canonical, initialize
+from historian.libsql_store.repository import Repository, canonical, initialize, transaction
 from historian.libsql_store.operations import storage_lock
 from historian.persistence.locator import locator_from_record, locator_to_record
 from historian.source_adapter import (
@@ -38,6 +38,7 @@ CAPABILITIES = {
     10009: "gold",
 }
 ALLOWED = {
+    "get_candidate": {"verifier"},
     "candidate": {"extractor"},
     "claim": {"extractor"},
     "route": {"extractor"},
@@ -59,17 +60,25 @@ MAX_REQUEST = 1024 * 1024
 
 
 def dispatch(repository, operation, data, role, principal, corpus):
+    if operation in {"put_object", "get_object", "get_packet_snapshot"}:
+        from historian.libsql_store.domain import dispatch as domain_dispatch
+        return domain_dispatch(repository,operation,data,role,principal,corpus)
     if role not in ALLOWED.get(operation, set()):
         raise PermissionError("capability denied")
     c = repository.connection
     if operation == "question":
         c.execute("INSERT INTO question VALUES (?,?)", (data["id"], data["text"]))
+    elif operation == "get_candidate":
+        row = c.execute("SELECT locator,quote FROM candidate WHERE id=?", (data['id'],)).fetchone()
+        if row is None:
+            raise KeyError(data['id'])
+        return {'id':data['id'],'locator':json.loads(row[0]),'quote':row[1]}
     elif operation == "candidate":
         loc = locator_to_record(locator_from_record(data["locator"]))
-        c.execute(
-            "INSERT INTO candidate VALUES (?,?,?)",
-            (data["id"], canonical(loc), data["quote"]),
-        )
+        with transaction(c):
+            c.execute("INSERT INTO candidate VALUES (?,?,?)", (data["id"], canonical(loc), data["quote"]))
+            c.execute("INSERT INTO candidate_intake VALUES (?,?,?,?)",
+                      (data["id"],data.get("extractor_id"),data.get("extraction_run_id"),principal))
     elif operation == "evidence":
         return repository.insert_evidence(data, principal)
     elif operation == "verify_source":

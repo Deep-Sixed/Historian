@@ -1,3 +1,6 @@
+> Historical v0 design/closure record. Current installation and storage guidance is in
+> [RUNBOOK.md](RUNBOOK.md); the only supported database is libSQL.
+
 # Historian schema — v0 DRAFT (rev 3)
 
 **For review. No persistence, no gates, no write paths implemented.**
