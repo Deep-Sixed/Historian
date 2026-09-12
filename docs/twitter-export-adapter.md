@@ -1,7 +1,7 @@
 # Twitter Export Adapter
 
 `TwitterExportAdapter` is the first concrete Source Adapter v1 implementation. It reads an
-X/Twitter account archive without changing PostgreSQL persistence or Historian
+X/Twitter account archive without changing persistence or Historian
 adjudication.
 
 The source system is `TWITTER_EXPORT` because the archive format still uses Twitter names:
@@ -111,7 +111,7 @@ exports. A valid export with zero tweets still enumerates as empty.
 Verification re-reads the current archive data before trusting a pointer, so mutation
 after pointer creation fails closed instead of validating against stale cached bytes.
 
-The adapter does not write to PostgreSQL and does not create `EvidenceRef` rows.
+The adapter does not write directly to storage and does not create `EvidenceRef` rows.
 
 ## Verification cost and lifetime
 

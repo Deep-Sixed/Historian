@@ -6,7 +6,6 @@ from pathlib import Path
 
 from historian.libsql_store.profile import LIBSQL
 from historian.persistence.catalog import CATALOG
-from historian.persistence.profiles import POSTGRESQL
 
 
 def validate(report, profile, failures):
@@ -37,13 +36,20 @@ def main():
     args = parser.parse_args()
     root = args.directory
     validate(json.loads((root/'historian-libsql-conformance.json').read_text()), LIBSQL, set())
-    validate(json.loads((root/'historian-persistence-conformance.json').read_text()), POSTGRESQL,
-             {'PV05.bypass', 'PV11.normal', 'PV11.integrity', 'PV12.normal', 'PV12.integrity'})
     boundary = json.loads((root/'historian-libsql-boundaries.json').read_text())
     assert boundary['profile_name'] == LIBSQL.name and boundary['profile_version'] == LIBSQL.version
     assert boundary['profile_digest'] == LIBSQL.digest
     assert len(boundary['evidence']) == 124
     assert all(row['expected'] == row['observed'] for row in boundary['evidence'])
+    from historian.libsql_store.access import READ, WRITE
+    roles = {"extractor","verifier","designer","typed","reviewer","runtime","builder","adjudicator","gold"}
+    app = json.loads((root/'historian-libsql-application.json').read_text())
+    assert (app['profile_name'],app['profile_version'],app['profile_digest']) == (LIBSQL.name,LIBSQL.version,LIBSQL.digest)
+    expected = {(op,kind,role) for op,mapping in [('get_object',READ),('put_object',WRITE),('get_packet_snapshot',{'AdjudicationPacket':READ['AdjudicationPacket']})]
+                for kind,allowed in mapping.items() for role in [*roles,'unassigned'] if role not in allowed}
+    assert len(app['evidence']) == len(expected)
+    assert {(e['operation'],e['kind'],e['capability']) for e in app['evidence']} == expected
+    assert all(e['observed'] == e['expected'] == 'forbidden' for e in app['evidence'])
     manifest = {'commit': args.commit, 'workflow_run': args.workflow_run,
                 'libsql_profile': LIBSQL.name, 'profile_version': LIBSQL.version,
                 'profile_digest': LIBSQL.digest, 'status': 'CONFORMS'}
