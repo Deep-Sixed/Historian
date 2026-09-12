@@ -24,8 +24,8 @@ Before 1.0, establish evidence from actual use:
 - Validate the operator workflow. The CLI exposes persistence operations, not a complete
   end-to-end import/adjudication product command. Add a higher-level workflow only after
   alpha use identifies the specific missing steps.
-- Decide whether existing PostgreSQL deployments need a dedicated migration tool. Do not
-  promise lossless migration of information the old schema never captured.
+- Reconcile any external legacy data export through a separately validated import or
+  verified re-ingestion. The supported runtime remains libSQL-only.
 
 Use alpha releases for fixes and workflow feedback, beta when the supported workflows
 and upgrade contract are stable, and a release candidate after the above evidence is

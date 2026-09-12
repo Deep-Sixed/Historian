@@ -10,8 +10,9 @@ docker build -f deployment/libsql/Dockerfile -t "$image" .
 cleanup() {
   docker cp "$container:/tmp/historian-libsql-conformance.json" "$report_dir/" 2>/dev/null || true
   docker cp "$container:/tmp/historian-libsql-boundaries.json" "$report_dir/" 2>/dev/null || true
+  docker cp "$container:/tmp/historian-libsql-application.json" "$report_dir/" 2>/dev/null || true
   docker rm -f "$container" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 docker run --name "$container" --user 0 --entrypoint python \
-  -e HISTORIAN_RUN_LIBSQL=1 "$image" -m pytest -q -s tests/test_libsql_profile.py tests/test_libsql_storage.py
+  -e HISTORIAN_RUN_LIBSQL=1 "$image" -m pytest -q -s tests/test_libsql_profile.py tests/test_libsql_storage.py tests/test_libsql_application.py

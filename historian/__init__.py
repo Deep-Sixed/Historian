@@ -11,4 +11,4 @@ forgotten, worked around under deadline, or bypassed by a code path added later.
 See INVARIANT-MATRIX.md and HISTORIAN-SCHEMA-v0.md.
 """
 
-__version__ = "0.1.0a1"
+__version__ = "0.1.0a2"

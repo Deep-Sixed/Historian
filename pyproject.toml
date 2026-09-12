@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "historian"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Evidence adjudication layer for redacted: typed relations, provenance, structural abstention"
 requires-python = ">=3.13"
 dependencies = ["libsql==0.1.11; sys_platform == 'linux'"]
@@ -14,7 +14,7 @@ historian = "historian.cli:main"
 
 [project.optional-dependencies]
 libsql = ["libsql==0.1.11"]
-dev = ["pytest>=8", "psycopg[binary]>=3"]
+dev = ["pytest>=8"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["historian"]
@@ -24,6 +24,5 @@ testpaths = ["tests"]
 markers = [
     "libsql: Linux peer-credential libSQL deployment tests; requires disposable container",
     "structural_gate: G-S1..G-S9 structural invariant enforcement",
-    "pg: PostgreSQL security/invariant tests; requires --run-pg and a provisioned database",
     "canary: real-corpus regression signal - NON-BLOCKING, not a release gate",
 ]

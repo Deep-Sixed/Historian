@@ -12,7 +12,7 @@ from historian.persistence.contract import (
     Status,
 )
 from historian.persistence.locator import locator_from_record, locator_to_record
-from historian.persistence.profiles import POSTGRESQL
+from historian.libsql_store.profile import LIBSQL as PROFILE
 from historian.source_adapter import (
     CoordinatePart,
     EvidenceLocator,
@@ -22,7 +22,7 @@ from historian.source_adapter import (
 
 
 class StubProbe:
-    """Harness unit-test double, never PostgreSQL conformance evidence."""
+    """Harness unit-test double, never deployment conformance evidence."""
     def execute(self, test):
         inv = next(i for i in CATALOG if i.id == test.invariant_id)
         return Observation(test.expected, inv.permitted_boundaries[0], 'unit test only',
@@ -30,11 +30,11 @@ class StubProbe:
 
 
 def test_complete_evidence_is_bound_to_exact_profile_and_run():
-    report = ConformanceHarness(CATALOG).run(POSTGRESQL, StubProbe())
+    report = ConformanceHarness(CATALOG).run(PROFILE, StubProbe())
     assert report.status is Status.CONFORMS
     assert len(report.evidence) == sum(len(i.conformance_tests) for i in CATALOG)
     assert all((e.profile_name, e.profile_version, e.run_id) ==
-               (POSTGRESQL.name, POSTGRESQL.version, report.run_id) for e in report.evidence)
+               (PROFILE.name, PROFILE.version, report.run_id) for e in report.evidence)
     assert report.contract_version == '1'
 
 
@@ -52,14 +52,14 @@ def test_one_missing_or_bad_probe_prevents_conformance(mode, expected):
             if mode == 'wrong_boundary':
                 return replace(super().execute(test), boundary=Boundary.TRUSTED_SERVICE)
             return replace(super().execute(test), observed='accepted')
-    report = ConformanceHarness(CATALOG).run(POSTGRESQL, Probe())
+    report = ConformanceHarness(CATALOG).run(PROFILE, Probe())
     assert report.status is expected
     assert 'sensitive' not in repr(report)
 
 
 def test_empty_claimed_coverage_does_not_skip_any_invariants():
     report = ConformanceHarness(CATALOG).run(
-        replace(POSTGRESQL, claimed_invariant_coverage=()), StubProbe())
+        replace(PROFILE, claimed_invariant_coverage=()), StubProbe())
     assert {e.invariant_id for e in report.evidence} == {i.id for i in CATALOG}
 
 
@@ -69,14 +69,14 @@ def test_failure_takes_precedence_over_unavailable_proof():
             if test.id == 'PV02.bypass':
                 return replace(super().execute(test), observed='accepted')
             raise NotImplementedError
-    assert ConformanceHarness(CATALOG).run(POSTGRESQL, Probe()).status is Status.DOES_NOT_CONFORM
+    assert ConformanceHarness(CATALOG).run(PROFILE, Probe()).status is Status.DOES_NOT_CONFORM
 
 
 def test_profile_version_is_not_engine_wide():
-    changed = replace(POSTGRESQL, version=2)
+    changed = replace(PROFILE, version=2)
     assert ConformanceHarness(CATALOG).run(changed, StubProbe()).profile_version == 2
     with pytest.raises(ValueError):
-        replace(POSTGRESQL, version=0)
+        replace(PROFILE, version=0)
 
 
 def test_catalog_cannot_silently_drop_proof_or_crosswire_tests():
@@ -118,7 +118,7 @@ def test_bypass_requires_observed_path_and_principal(field, value):
         def execute(self, test):
             obs = super().execute(test)
             return replace(obs, **{field: value}) if test.id == 'PV08.bypass' else obs
-    report = ConformanceHarness(CATALOG).run(POSTGRESQL, Probe())
+    report = ConformanceHarness(CATALOG).run(PROFILE, Probe())
     assert report.status is Status.DOES_NOT_CONFORM
     evidence = next(e for e in report.evidence if e.test_id == 'PV08.bypass')
     assert evidence.expected_access is Access.BYPASS
@@ -129,7 +129,7 @@ def test_bypass_requires_observed_path_and_principal(field, value):
 def test_required_property_without_a_proving_test_is_not_tested():
     catalog = (replace(CATALOG[0], required_boundary_properties=(
         *CATALOG[0].required_boundary_properties, 'new_security_property')), *CATALOG[1:])
-    report = ConformanceHarness(catalog).run(POSTGRESQL, StubProbe())
+    report = ConformanceHarness(catalog).run(PROFILE, StubProbe())
     assert report.status is Status.NOT_TESTED
     assert report.missing_properties == (('PV01', ('new_security_property',)),)
 
@@ -137,7 +137,7 @@ def test_required_property_without_a_proving_test_is_not_tested():
 def test_proof_declarations_are_required_even_when_all_results_match():
     weakened = replace(CATALOG[0], conformance_tests=tuple(
         replace(t, proves_properties=()) for t in CATALOG[0].conformance_tests))
-    report = ConformanceHarness((weakened, *CATALOG[1:])).run(POSTGRESQL, StubProbe())
+    report = ConformanceHarness((weakened, *CATALOG[1:])).run(PROFILE, StubProbe())
     assert report.status is Status.NOT_TESTED
     assert report.missing_properties == (('PV01', ('referential_integrity',)),)
 
@@ -147,7 +147,7 @@ def test_failed_probe_does_not_contribute_property_coverage():
         def execute(self, test):
             obs = super().execute(test)
             return replace(obs, observed='accepted') if test.id == 'PV04.duplicate' else obs
-    report = ConformanceHarness(CATALOG).run(POSTGRESQL, Probe())
+    report = ConformanceHarness(CATALOG).run(PROFILE, Probe())
     assert report.status is Status.DOES_NOT_CONFORM
     assert ('PV04', ('durable_uniqueness',)) in report.missing_properties
 
@@ -159,23 +159,23 @@ def test_failed_probe_does_not_contribute_property_coverage():
     {'excluded_untrusted_boundaries': ('different exclusion',)},
     {'claimed_invariant_coverage': ()},
     {'backend_family': 'different backend'},
-    {'threat_model': replace(POSTGRESQL.threat_model, access_assumptions=('different access',))},
-    {'threat_model': replace(POSTGRESQL.threat_model, actors=(('caller', 'owner access'),))},
-    {'threat_model': replace(POSTGRESQL.threat_model, excluded_threats=('different threat',))},
+    {'threat_model': replace(PROFILE.threat_model, access_assumptions=('different access',))},
+    {'threat_model': replace(PROFILE.threat_model, actors=(('caller', 'owner access'),))},
+    {'threat_model': replace(PROFILE.threat_model, excluded_threats=('different threat',))},
 ])
 def test_same_profile_version_cannot_reuse_a_changed_definition_digest(change):
-    altered = replace(POSTGRESQL, **change)
-    assert (altered.name, altered.version) == (POSTGRESQL.name, POSTGRESQL.version)
-    assert altered.digest != POSTGRESQL.digest
+    altered = replace(PROFILE, **change)
+    assert (altered.name, altered.version) == (PROFILE.name, PROFILE.version)
+    assert altered.digest != PROFILE.digest
     report = ConformanceHarness(CATALOG).run(altered, StubProbe())
     assert report.profile_digest == altered.digest
     assert all(e.profile_digest == altered.digest for e in report.evidence)
 
 
 def test_digest_is_stable_and_present_in_serialized_result_and_evidence():
-    assert replace(POSTGRESQL).digest == POSTGRESQL.digest
-    assert len(POSTGRESQL.digest) == 64
-    report = ConformanceHarness(CATALOG).run(POSTGRESQL, StubProbe())
+    assert replace(PROFILE).digest == PROFILE.digest
+    assert len(PROFILE.digest) == 64
+    report = ConformanceHarness(CATALOG).run(PROFILE, StubProbe())
     artifact = json.loads(json.dumps(asdict(report), default=lambda v: v.value))
-    assert artifact['profile_digest'] == POSTGRESQL.digest
-    assert all(e['profile_digest'] == POSTGRESQL.digest for e in artifact['evidence'])
+    assert artifact['profile_digest'] == PROFILE.digest
+    assert all(e['profile_digest'] == PROFILE.digest for e in artifact['evidence'])

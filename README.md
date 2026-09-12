@@ -7,7 +7,7 @@ re-verifiable source identity and versioning, normalizes records without copying
 authority away from the original material, and adjudicates what conclusions that evidence
 can support.
 
-The first pre-1.0 release series starts at `v0.1.0a1`. It includes source adapters,
+The first pre-1.0 release series starts at `v0.1.0a2`. It includes source adapters,
 question-bound adjudication and the default Linux peer-credential libSQL service.
 The frozen original baseline remains available at `v0.0.0-original`.
 
@@ -17,13 +17,10 @@ See [installation and backup/restore](docs/release-operations.md),
 Historian remains private while public-release safeguards are still under review.
 
 Persistence and security guarantees are specified in [Persistence v1](docs/persistence-v1.md).
-Conformance applies to an exact deployment profile; the current PostgreSQL candidate has
-known gaps and is not yet conforming.
+The only database is the [libSQL Linux service profile](docs/libsql-profile-v3.md).
+Complete application stores use its authenticated socket API; no server-database driver
+or fallback is installed. Run `historian profile` to inspect the exact profile identity.
 
-The default application backend is the [libSQL Linux service profile](docs/libsql-profile-v2.md) implements the same
-contract with peer-credential capability isolation. Its independently reported conformance
-result applies only to that exact named/versioned profile. PostgreSQL remains a separately tested legacy backend.
-
-Run `historian profile` to inspect the default, `historian serve --corpus PATH` to
-start the service, and `historian request OPERATION --data-file request.json` from a
-provisioned capability UID. See [migration and upgrades](docs/migration.md).
+See [application persistence](docs/application-persistence.md) for store methods and
+staged case-queue intake. Existing libSQL installations need the explicit schema upgrade
+in [migration](docs/migration.md) before running v0.1.0a2.
