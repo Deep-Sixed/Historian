@@ -10,9 +10,11 @@ import os
 import socket
 import socketserver
 import struct
+import stat
 from pathlib import Path
 
 from historian.libsql_store.repository import Repository, canonical, initialize
+from historian.libsql_store.operations import storage_lock
 from historian.persistence.locator import locator_from_record, locator_to_record
 from historian.source_adapter import (
     CoordinatePart,
@@ -220,13 +222,29 @@ def serve(database, socket_path, corpus):
             "socket directory must be service-owned and not caller-writable"
         )
     os.umask(0o077)
-    initialize(database)
-    with socketserver.UnixStreamServer(str(socket_path), Handler) as server:
-        # Socket directory is service-owned 0755: callers can connect, not replace it.
-        os.chmod(socket_path, 0o666)
-        server.database = database
-        server.corpus = corpus
-        server.serve_forever()
+    with storage_lock(database):
+        initialize(database)
+        # The exclusive database lock excludes another instance of this service.
+        # Never remove a non-socket file or another owner's socket.
+        if Path(socket_path).exists():
+            st = Path(socket_path).lstat()
+            if not stat.S_ISSOCK(st.st_mode) or st.st_uid != SERVICE_UID:
+                raise RuntimeError("socket path is not a service-owned socket")
+            with socket.socket(socket.AF_UNIX) as probe:
+                try:
+                    probe.connect(str(socket_path))
+                except ConnectionRefusedError:
+                    Path(socket_path).unlink()
+                else:
+                    raise RuntimeError("socket is already serving")
+        try:
+            with socketserver.UnixStreamServer(str(socket_path), Handler) as server:
+                os.chmod(socket_path, 0o666)
+                server.database = database
+                server.corpus = corpus
+                server.serve_forever()
+        finally:
+            Path(socket_path).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
