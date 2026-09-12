@@ -1,1 +1,1 @@
-"""Local libSQL persistence; no implicit replacement of PostgreSQL."""
+"""Historian's only database backend: capability-isolated libSQL."""

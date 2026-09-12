@@ -4,7 +4,8 @@ python -m build
 package_env=$(mktemp -d)
 trap 'rm -rf "$package_env"' EXIT
 python -m venv "$package_env/venv"
-"$package_env/venv/bin/python" -m pip install dist/*.whl
+release_version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+"$package_env/venv/bin/python" -m pip install "dist/historian-$release_version-py3-none-any.whl"
 cd "$package_env"
 "$package_env/venv/bin/historian" profile
 "$package_env/venv/bin/python" - <<'PY'

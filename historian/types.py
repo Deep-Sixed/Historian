@@ -440,8 +440,8 @@ class ClaimProposal:
     document and deciding what it claims is inference, and the adjudicator's conclusion text
     comes straight from one of these. An earlier revision passed claims as anonymous tuples
     and synthesised `claim:<evidence_id>` identifiers at resolution time. Those strings were
-    written into `Resolution.proposed_relation_refs`, a field whose PostgreSQL counterpart
-    is `resolution_proposed_dep.proposal_id REFERENCES proposed_relation(id)` - so the
+    written into `Resolution.proposed_relation_refs`, which requires a real proposal
+    dependency rather than a fabricated identifier - so the
     resolution was not persistable at all, and the single most load-bearing inference in the
     whole resolution had no identity of its own.
 
@@ -488,9 +488,8 @@ class RoutingProposal:
     flaw as a self-reported blindness boolean.
 
     The frame MUST be validated against the referenced taxonomy; `from_extractor` requires
-    the FrameTaxonomy object. In PostgreSQL the same rule is a composite foreign key
-    (taxonomy_version, proposed_frame) -> taxonomy_entry(version, frame), which is the real
-    enforcement.
+    the FrameTaxonomy object. The service also validates the stored taxonomy before
+    accepting a routing proposal.
 
     `alternates` records frames CONSIDERED but not selected, so "converged across the
     frames considered" is checkable rather than implied.

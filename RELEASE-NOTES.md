@@ -1,23 +1,23 @@
-# Historian v0.1.0a1
+# Historian v0.1.0a2 — libSQL only
 
-First private alpha release in the pre-1.0 series.
+libSQL is now the only database in the supported source tree, install dependencies,
+deployment path, case-queue tool and CI. The retired backend's implementation remains
+available only in historical release tags; no existing external database was modified.
 
-- Reject caller frames from a mismatched taxonomy version before selecting authority.
-- Require all declared Twitter media payloads; thumbnails do not stand in for videos.
-- Index archive metadata once per source generation and re-read requested media.
-- Default the new application CLI to the Linux peer-credential libSQL service.
-- Add exact-schema checks, exclusive service locking, offline backup/restore, a systemd
-  example and installed-wheel validation.
+Complete application stores now persist resolved/unresolved outputs, typed provenance
+edges, review events, ordered seeds/packets, independent adjudications and gold through
+the authenticated Unix socket service. Every domain type has an explicit read/write
+capability matrix, bound into profile version 3's digest and tested under real UIDs.
+Question-bound foreign keys, publication seals and immutable dependency edges remain
+storage-enforced. Persistence v1's 20 invariants and 43 probes are unchanged.
 
-Persistence v1 is unchanged. libsql-linux-peercred-service-v1 v2 conforms to all 43
-shared probes with 124 successful supplemental boundary checks. PostgreSQL v1 retains
-its five known PV05/PV11/PV12 failures; green regression CI does not claim conformance.
+Existing libSQL v2 installations require an explicit additive schema upgrade. Back up
+with the previous release, retain its wheel, then follow docs/migration.md. Unknown
+schemas fail closed. Restore/rollback never overwrites an existing database.
 
-The artifacts include wheel, source distribution, checksums, exact profile reports and
-release/CI identity. Install and operate according to docs/release-operations.md.
-This is a Linux deployment profile, not a generic embedded database security claim.
-No production installation or database is changed by this release. Automatic PostgreSQL
-migration and a complete end-to-end operator workflow are not included. See
-docs/road-to-1.0.md for the evidence still required before 1.0.
+The release includes installed wheel/source distributions and exact conformance,
+base bypass and application-boundary evidence. Production host certification, importing
+an external legacy database and proving real-corpus capacity remain separate operator
+work; this release does not fabricate missing historical provenance.
 
 Co-authored-by: Codex <codex@openai.com>

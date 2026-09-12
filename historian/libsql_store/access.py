@@ -1,0 +1,36 @@
+"""Declared application capability matrix, included in the profile digest."""
+
+WRITE = {
+    "Question": {"designer"},
+    "FrameTaxonomy": {"designer"},
+    "ProposedRelation": {"extractor"},
+    "ProposalDispositionEvent": {"extractor"},
+    "SourceRoleProposal": {"extractor"},
+    "ClaimProposal": {"extractor"},
+    "RoutingProposal": {"extractor"},
+    "AssertedRelation": {"typed", "reviewer"},
+    "AssertedRelationReview": {"typed", "reviewer"},
+    "Resolution": {"runtime"},
+    "ResolutionReview": {"reviewer"},
+    "GoldCaseSeed": {"designer"},
+    "AdjudicationPacket": {"builder"},
+    "BlindAdjudication": {"adjudicator"},
+    "EvaluationGold": {"gold"},
+}
+READ = {
+    "Question": {"designer", "extractor", "runtime"},
+    "FrameTaxonomy": {"designer", "extractor", "runtime"},
+    "ProposedRelation": {"extractor", "reviewer", "runtime"},
+    "ProposalDispositionEvent": {"extractor", "reviewer", "runtime"},
+    "SourceRoleProposal": {"extractor", "runtime"},
+    "ClaimProposal": {"extractor", "runtime"},
+    "RoutingProposal": {"extractor", "runtime"},
+    "AssertedRelation": {"typed", "reviewer", "runtime"},
+    "AssertedRelationReview": {"reviewer", "runtime"},
+    "Resolution": {"runtime", "reviewer"},
+    "ResolutionReview": {"runtime", "reviewer"},
+    "GoldCaseSeed": {"designer", "builder", "gold"},
+    "AdjudicationPacket": {"builder", "adjudicator", "gold"},
+    "BlindAdjudication": {"adjudicator", "gold"},
+    "EvaluationGold": {"gold"},
+}

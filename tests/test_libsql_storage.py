@@ -60,3 +60,22 @@ def test_backup_refuses_live_service_lock(tmp_path):
         with pytest.raises(RuntimeError, match='in use'):
             snapshot(source, tmp_path / 'backup.db')
     assert not (tmp_path / 'backup.db').exists()
+
+
+def test_upgrade_alpha_schema_is_additive_and_preserves_immutability(tmp_path):
+    from historian.libsql_store.repository import _create_schema, upgrade_schema, validate_schema
+    path = tmp_path / 'previous.db'
+    c = connect(path)
+    _create_schema(c, application=False)
+    c.execute("INSERT INTO question VALUES ('old','retained')")
+    c.close()
+    with pytest.raises(ValueError, match='unsupported schema'):
+        initialize(path)
+    upgrade_schema(path)
+    upgrade_schema(path)  # Repeat is harmless, no duplicate data or triggers.
+    c = connect(path)
+    validate_schema(c)
+    assert c.execute('SELECT * FROM question').fetchall() == [('old','retained')]
+    with pytest.raises(ValueError, match='immutable'):
+        c.execute("DELETE FROM question")
+    c.close()

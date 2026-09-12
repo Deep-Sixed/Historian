@@ -1,9 +1,11 @@
+import json
+from historian.libsql_store.access import WRITE, READ
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Boundary, PersistenceProfile, ThreatModel
 
 LIBSQL = PersistenceProfile(
     name="libsql-linux-peercred-service-v1",
-    version=2,
+    version=3,
     backend_family="libSQL",
     deployment_model="Linux local Unix socket service, Python 3.14.5, libsql Python 0.1.11; "
     "service UID 10000; private 0700 database directory and 0755 socket directory; "
@@ -11,7 +13,9 @@ LIBSQL = PersistenceProfile(
     credential_access_model="SO_PEERCRED kernel UID; fixed UID 10001..10009 capability mapping; "
     "assertion writes persist the kernel-derived principal and capability, and "
     "the database constrains origin compatibility for UIDs 10004 and 10005. "
-    "No shared database credential or bearer secret. Callers cannot acquire "
+    "Domain object writes and reads use a fixed per-type capability allowlist; full resolution and gold lineage are stored atomically. Packet snapshot reads use the AdjudicationPacket read capability set. "
+    + json.dumps({"write": {k: sorted(v) for k,v in WRITE.items()}, "read": {k: sorted(v) for k,v in READ.items()}},sort_keys=True)
+    + " No shared database credential or bearer secret. Callers cannot acquire "
     "service UID, root, container control, ptrace or database files.",
     trusted_boundaries=(Boundary.DATABASE, Boundary.TRUSTED_SERVICE),
     excluded_untrusted_boundaries=(
