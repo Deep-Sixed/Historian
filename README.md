@@ -7,7 +7,7 @@ re-verifiable source identity and versioning, normalizes records without copying
 authority away from the original material, and adjudicates what conclusions that evidence
 can support.
 
-The first pre-1.0 release series starts at `v0.1.0a2`. It includes source adapters,
+The current pre-1.0 release is `v0.1.0a2`. It includes source adapters,
 question-bound adjudication and the default Linux peer-credential libSQL service.
 The frozen original baseline remains available at `v0.0.0-original`.
 
