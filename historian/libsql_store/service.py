@@ -125,13 +125,7 @@ def dispatch(repository, operation, data, role, principal, corpus):
     elif operation == "packet":
         return repository.create_packet(data)
     elif operation == "assertion":
-        required = "TYPED_SOURCE" if role == "typed" else "HUMAN_REVIEWED_PROPOSAL"
-        if data["origin"] != required:
-            raise PermissionError("origin denied")
-        c.execute(
-            "INSERT INTO assertion VALUES (?,?,?,?,?)",
-            (data["id"], data["subject_id"], data["object_id"], required, principal),
-        )
+        return repository.insert_assertion(data, principal, role)
     elif operation == "blind_packet":
         exists = c.execute(
             "SELECT id FROM packet_seal WHERE id=?", (data["id"],)
@@ -199,7 +193,14 @@ class Handler(socketserver.StreamRequestHandler):
             response = {"ok": False, "error": "forbidden"}
         except Exception as exc:  # noqa: BLE001 - sanitize errors at the process boundary
             # No SQL payloads, sources, paths or secrets in remote error responses.
-            response = {"ok": False, "error": type(exc).__name__}
+            error = type(exc).__name__
+            # libsql 0.1.11 exposes constraint violations as ValueError. Match the
+            # entire named-CHECK signature; unrelated storage failures prove nothing.
+            if type(exc) is ValueError and str(exc) == (
+                "CHECK constraint failed: assertion_origin_binding"
+            ):
+                error = "assertion_origin_binding"
+            response = {"ok": False, "error": error}
         finally:
             if repository is not None:
                 repository.close()
