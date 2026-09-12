@@ -630,3 +630,29 @@ def test_video_payload_is_required_and_bound(tmp_path):
     assert adapter.verify(pointer).failure is None
     (adapter._root / "data/tweets_media/100-movie.mp4").unlink()
     assert adapter.verify(pointer).failure.code is SourceFailureCode.NOT_FOUND
+
+
+@pytest.mark.parametrize("zipped", [False, True])
+def test_batch_verification_loads_archive_metadata_once(tmp_path, monkeypatch, zipped):
+    writer = write_zip_export if zipped else write_export
+    path = writer(tmp_path / ("archive.zip" if zipped else "archive"),
+                  tweets=[tweet(str(i)) for i in range(100)])
+    with TwitterExportAdapter(path) as adapter:
+        calls = []
+        original = adapter._load_ytd_array
+        def counted(member):
+            calls.append(member)
+            return original(member)
+        monkeypatch.setattr(adapter, "_load_ytd_array", counted)
+        records = list(adapter.enumerate_records())
+        for record in records:
+            assert adapter.verify(full_pointer(adapter, record.record_id)).failure is None
+        assert calls.count("data/tweets.js") == 1
+
+
+def test_cached_verification_detects_media_content_change(tmp_path):
+    adapter = adapter_for(tmp_path, tweets=[tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")],
+                          media={"100-photo.jpg": b"one"})
+    pointer = full_pointer(adapter)
+    (adapter._root / "data/tweets_media/100-photo.jpg").write_bytes(b"two")
+    assert adapter.verify(pointer).failure.code is SourceFailureCode.VERSION_MISMATCH
