@@ -202,6 +202,19 @@ def test_raw_socket_has_no_sql_role_switch_or_finalizer_escape(deployment, role)
         assert result["principal"] == f"uid:{ROLES[role]}"
 
 
+
+def test_second_service_cannot_replace_live_socket(deployment):
+    probe, _, _ = deployment
+    result = subprocess.run(
+        [sys.executable, "-m", "historian.libsql_store.service",
+         "--database", str(probe.database), "--socket", str(probe.socket),
+         "--corpus", str(probe.corpus)],
+        user=10000, group=10000, extra_groups=[], capture_output=True, timeout=10,
+    )
+    assert result.returncode != 0
+    assert b"storage is in use" in result.stderr
+    probe.ok("designer", "question", id=uuid4().hex, text="still serving")
+
 def test_assertion_origin_binding_is_enforced_by_database(deployment):
     probe, _, _ = deployment
     probe.setup()

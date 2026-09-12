@@ -17,6 +17,11 @@ def main(argv=None):
     request.add_argument("operation")
     request.add_argument("--socket", default="/run/historian/historian.sock")
     request.add_argument("--data-file", type=Path, required=True)
+    for operation in ("check", "backup", "restore"):
+        admin = commands.add_parser(operation, help="Offline service-owner storage operation")
+        admin.add_argument("--database", type=Path, required=True)
+        if operation != "check":
+            admin.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "profile":
         from historian.libsql_store.profile import LIBSQL
@@ -25,6 +30,18 @@ def main(argv=None):
         return 0
     if sys.platform != "linux":
         parser.error("the default profile requires Linux SO_PEERCRED; no fallback backend")
+    if args.command in {"check", "backup", "restore"}:
+        import os
+        if os.getuid() != 10000:
+            parser.error("storage operations require service UID 10000")
+        from historian.libsql_store.operations import check, snapshot, storage_lock
+        if args.command == "check":
+            with storage_lock(args.database):
+                check(args.database)
+        else:
+            snapshot(args.database, args.destination)
+        print(json.dumps({"ok": True, "operation": args.command}))
+        return 0
     if args.command == "serve":
         from historian.libsql_store.service import serve as run_service
         run_service(args.database, args.socket, args.corpus)
