@@ -112,3 +112,13 @@ Verification re-reads the current archive data before trusting a pointer, so mut
 after pointer creation fails closed instead of validating against stale cached bytes.
 
 The adapter does not write to PostgreSQL and does not create `EvidenceRef` rows.
+
+## Verification cost and lifetime
+
+Use the adapter as a context manager for ZIP archives to close the cached ZIP handle.
+Tweet/header metadata is indexed once per filesystem generation (device, inode, size,
+mtime and ctime). Verification re-reads and hashes the requested tweet's media. Metadata
+changes invalidate the index; enumeration refreshes all records. This assumes the source
+filesystem reports changes faithfully; a hostile filesystem is outside this cache model.
+Each declared photo must match an archived basename; videos/GIFs require an MP4 variant,
+not just their preview image. Unresolvable media fails closed.
