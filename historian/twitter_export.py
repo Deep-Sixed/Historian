@@ -46,8 +46,14 @@ class TwitterExportAdapter:
         if source_instance_id is not None and not source_instance_id:
             raise ValueError("source_instance_id cannot be empty")
         self._source_instance_id_overridden = source_instance_id is not None
+        self._archive = None
+        self._archive_generation = None
         self.source_instance_id = source_instance_id or self._derive_source_instance_id()
         self._records: dict[str, bytes] | None = None
+        self._generation = None
+        self._tweets = {}
+        self._headers = {}
+        self._media = {}
 
     def enumerate_records(self):
         if failure := self._ensure_records():
@@ -69,7 +75,7 @@ class TwitterExportAdapter:
     def version_of(self, source_instance_id: str, record_id: str) -> str | SourceFailure:
         if source_instance_id != self.source_instance_id:
             return SourceFailure(SourceFailureCode.NOT_FOUND, "source instance is unknown")
-        if failure := self._ensure_records():
+        if failure := self._ensure_records(record_id):
             return failure
         content = self._records.get(record_id)
         if content is None:
@@ -183,8 +189,61 @@ class TwitterExportAdapter:
             return SourceFailure(SourceFailureCode.INVALID_POINTER, str(exc))
         return None
 
-    def _ensure_records(self) -> SourceFailure | None:
+    def _source_generation(self):
+        paths = [self._root] if not self._root.is_dir() else [
+            self._root / name for name in (*self._ASSIGNMENTS, "data/tweets_media")
+        ]
+        signature = []
+        for path in paths:
+            try:
+                stat = path.stat()
+                signature.append((stat.st_dev, stat.st_ino, stat.st_size,
+                                  stat.st_mtime_ns, stat.st_ctime_ns))
+            except FileNotFoundError:
+                signature.append(None)
+        return tuple(signature)
+
+    def close(self):
+        if self._archive is not None:
+            self._archive.close()
+            self._archive = None
+            self._archive_generation = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def _zip(self):
+        generation = self._source_generation()
+        if self._archive is None or generation != self._archive_generation:
+            self.close()
+            archive = ZipFile(self._root)
+            try:
+                self._validate_zip_members(archive)
+            except Exception:
+                archive.close()
+                raise
+            self._archive = archive
+            self._archive_generation = generation
+        return self._archive
+
+    def _ensure_records(self, record_id=None) -> SourceFailure | None:
         try:
+            generation = self._source_generation()
+            if self._records is not None and generation == self._generation and record_id is not None:
+                tweet = self._tweets.get(record_id)
+                if tweet is not None:
+                    tweet_id = self._tweet_id(tweet)
+                    refs = self._media_refs_for_tweet(tweet, tweet_id, self._media)
+                    if isinstance(refs, SourceFailure):
+                        return refs
+                    self._records[record_id] = self._canonical_bytes({
+                        "family": "tweet", "tweet": tweet,
+                        "tweet_header": self._headers.get(tweet_id), "tweet_media": refs,
+                    })
+                return None
             self._validate_current_source_identity()
             media_index = self._media_index()
             tweets = self._load_ytd_array("data/tweets.js")
@@ -199,6 +258,7 @@ class TwitterExportAdapter:
             return SourceFailure(SourceFailureCode.INTEGRITY_FAILURE, str(exc))
 
         records = {}
+        indexed_tweets = {}
         for index, item in enumerate(tweets):
             tweet = item.get("tweet") if isinstance(item, dict) else None
             if not isinstance(tweet, dict):
@@ -218,6 +278,7 @@ class TwitterExportAdapter:
                     SourceFailureCode.INTEGRITY_FAILURE,
                     f"duplicate tweet id {tweet_id!r}",
                 )
+            indexed_tweets[record_id] = tweet
             media_refs = self._media_refs_for_tweet(tweet, tweet_id, media_index)
             if isinstance(media_refs, SourceFailure):
                 return media_refs
@@ -229,6 +290,8 @@ class TwitterExportAdapter:
             })
 
         self._records = records
+        self._tweets, self._headers, self._media = indexed_tweets, headers, media_index
+        self._generation = generation
         return None
 
     def _derive_source_instance_id(self) -> str:
@@ -318,9 +381,7 @@ class TwitterExportAdapter:
                 raise ValueError("export member escapes source root") from exc
             return path.read_bytes()
         if self._root.is_file():
-            with ZipFile(self._root) as archive:
-                self._validate_zip_members(archive)
-                return archive.read(member_name)
+            return self._zip().read(member_name)
         raise OSError(f"export root does not exist: {self._root}")
 
     def _list_export_members(self) -> list[str]:
@@ -331,9 +392,7 @@ class TwitterExportAdapter:
                 if path.is_file()
             ]
         if self._root.is_file():
-            with ZipFile(self._root) as archive:
-                self._validate_zip_members(archive)
-                return archive.namelist()
+            return self._zip().namelist()
         raise OSError(f"export root does not exist: {self._root}")
 
     def _validate_zip_members(self, archive: ZipFile) -> None:
