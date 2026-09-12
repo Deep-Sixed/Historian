@@ -9,6 +9,9 @@ cd "$package_env"
 "$package_env/venv/bin/historian" profile
 "$package_env/venv/bin/python" - <<'PY'
 import tempfile
+from importlib.metadata import version
+import historian
+assert version("historian") == historian.__version__
 from pathlib import Path
 from historian.libsql_store.repository import initialize, connect
 from historian.libsql_store.operations import snapshot, check
