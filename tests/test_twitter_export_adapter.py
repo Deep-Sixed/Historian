@@ -599,3 +599,34 @@ def test_rejects_unexpected_archive_data_assignment(tmp_path):
 
     assert isinstance(failure, SourceFailure)
     assert failure.code is SourceFailureCode.MALFORMED_SOURCE
+
+
+@pytest.mark.parametrize("zipped", [False, True])
+@pytest.mark.parametrize("kind", ["gallery", "video"])
+def test_partial_media_cannot_verify(tmp_path, zipped, kind):
+    item = tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")
+    entities = item["tweet"]["extended_entities"]["media"]
+    if kind == "gallery":
+        entities.append({"media_url": "https://pbs.twimg.com/media/second.jpg"})
+    else:
+        entities[0].update(type="video", video_info={"variants": [
+            {"content_type": "video/mp4", "url": "https://video.twimg.com/movie.mp4"}]})
+    writer = write_zip_export if zipped else write_export
+    path = writer(tmp_path / ("archive.zip" if zipped else "archive"),
+                  tweets=[item], media={"100-photo.jpg": b"thumbnail"})
+    adapter = TwitterExportAdapter(path)
+    result = adapter.version_of(adapter.source_instance_id, "tweet:100")
+    assert isinstance(result, SourceFailure)
+    assert result.code is SourceFailureCode.NOT_FOUND
+
+
+def test_video_payload_is_required_and_bound(tmp_path):
+    item = tweet(media_ref="https://pbs.twimg.com/media/photo.jpg")
+    item["tweet"]["extended_entities"]["media"][0].update(
+        type="video", video_info={"variants": [
+            {"content_type": "video/mp4", "url": "https://video.twimg.com/movie.mp4?tag=1"}]})
+    adapter = adapter_for(tmp_path, tweets=[item], media={"100-movie.mp4": b"video"})
+    pointer = full_pointer(adapter)
+    assert adapter.verify(pointer).failure is None
+    (adapter._root / "data/tweets_media/100-movie.mp4").unlink()
+    assert adapter.verify(pointer).failure.code is SourceFailureCode.NOT_FOUND
