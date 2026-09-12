@@ -7,13 +7,12 @@ re-verifiable source identity and versioning, normalizes records without copying
 authority away from the original material, and adjudicates what conclusions that evidence
 can support.
 
-The repository currently contains:
+The first pre-1.0 release series starts at `v0.1.0a1`. It includes source adapters,
+question-bound adjudication and the default Linux peer-credential libSQL service.
+The frozen original baseline remains available at `v0.0.0-original`.
 
-- the frozen original baseline at `v0.0.0-original`
-- provenance hardening for question-bound adjudication
-- PostgreSQL migration and CI gates for security/invariant tests
-- the Source Adapter v1 contract
-- the first production adapter, `TwitterExportAdapter`
+See [installation and backup/restore](docs/release-operations.md),
+[migration](docs/migration.md), and [the remaining 1.0 gates](docs/road-to-1.0.md).
 
 Historian remains private while public-release safeguards are still under review.
 
