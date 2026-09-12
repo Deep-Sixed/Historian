@@ -1,0 +1,25 @@
+[Unit]
+Description=Historian libSQL peer-credential service
+After=local-fs.target
+
+[Service]
+Type=simple
+User=10000
+Group=10000
+UMask=0077
+StateDirectory=historian
+StateDirectoryMode=0700
+RuntimeDirectory=historian
+RuntimeDirectoryMode=0755
+ExecStartPre=/usr/bin/install -d -m 0700 /var/lib/historian/private
+ExecStart=/opt/historian/venv/bin/historian serve --corpus /var/lib/historian/corpus
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/historian /run/historian
+
+[Install]
+WantedBy=multi-user.target

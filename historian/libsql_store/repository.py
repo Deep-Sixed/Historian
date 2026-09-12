@@ -32,8 +32,7 @@ def transaction(connection):
         raise
 
 
-def initialize(path):
-    c = connect(path)
+def _create_schema(c):
     c.executescript(Path(__file__).with_name("schema.sql").read_text())
     # Revision is INSERT with a new durable ID. Protect every committed row at SQL level.
     tables = [
@@ -46,7 +45,32 @@ def initialize(path):
         for operation in ("UPDATE", "DELETE"):
             c.execute(f"""CREATE TRIGGER IF NOT EXISTS immutable_{table}_{operation}
                 BEFORE {operation} ON {table} BEGIN SELECT RAISE(ABORT,'immutable'); END""")
-    c.close()
+
+
+def schema_definition(c):
+    return c.execute("SELECT type,name,tbl_name,sql FROM sqlite_master "
+                     "WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").fetchall()
+
+
+def validate_schema(c):
+    reference = connect(":memory:")
+    try:
+        _create_schema(reference)
+        if schema_definition(c) != schema_definition(reference):
+            raise ValueError("unsupported schema; restore with its original release or re-ingest")
+    finally:
+        reference.close()
+
+
+def initialize(path):
+    c = connect(path)
+    try:
+        if not schema_definition(c):
+            _create_schema(c)
+        else:
+            validate_schema(c)
+    finally:
+        c.close()
 
 
 class Repository:
