@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 from zipfile import BadZipFile, ZipFile
+from urllib.parse import urlsplit, unquote
 
 from historian.source_adapter import (
     CoordinatePart,
@@ -381,6 +382,27 @@ class TwitterExportAdapter:
                 SourceFailureCode.NOT_FOUND,
                 f"tweet {tweet_id!r} declares media but has no archived tweets_media member",
             )
+        # Each declared entity needs its own archived payload. A thumbnail does
+        # not establish that a video (or the other photos in a gallery) exists.
+        declared = self._media_entities(tweet, "extended_entities") or self._media_entities(tweet, "entities")
+        available = {posixpath.basename(member) for member in members}
+        for entity in declared:
+            if not isinstance(entity, dict):
+                return SourceFailure(SourceFailureCode.MALFORMED_SOURCE, "invalid media entity")
+            if entity.get("type") in {"video", "animated_gif"}:
+                info = entity.get("video_info", {})
+                variants = info.get("variants", []) if isinstance(info, dict) else []
+                urls = [v.get("url") for v in variants if isinstance(v, dict)
+                        and v.get("content_type") == "video/mp4"]
+            else:
+                urls = [entity.get("media_url_https") or entity.get("media_url")]
+            expected = {
+                f"{tweet_id}-{posixpath.basename(unquote(urlsplit(url).path))}"
+                for url in urls if isinstance(url, str) and urlsplit(url).path
+            }
+            if not expected.intersection(available):
+                return SourceFailure(SourceFailureCode.NOT_FOUND,
+                                     f"tweet {tweet_id!r} has an unarchived media entity")
         refs = []
         for member in members:
             try:
