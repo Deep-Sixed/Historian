@@ -21,6 +21,10 @@ Persistence and security guarantees are specified in [Persistence v1](docs/persi
 Conformance applies to an exact deployment profile; the current PostgreSQL candidate has
 known gaps and is not yet conforming.
 
-An optional [libSQL Linux service profile](docs/libsql-profile-v2.md) implements the same
+The default application backend is the [libSQL Linux service profile](docs/libsql-profile-v2.md) implements the same
 contract with peer-credential capability isolation. Its independently reported conformance
-result applies only to that exact named/versioned profile; PostgreSQL is not replaced.
+result applies only to that exact named/versioned profile. PostgreSQL remains a separately tested legacy backend.
+
+Run `historian profile` to inspect the default, `historian serve --corpus PATH` to
+start the service, and `historian request OPERATION --data-file request.json` from a
+provisioned capability UID. See [migration and upgrades](docs/migration.md).
