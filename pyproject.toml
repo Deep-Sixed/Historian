@@ -7,7 +7,10 @@ name = "historian"
 version = "0.1.0"
 description = "Evidence adjudication layer for EVECOR: typed relations, provenance, structural abstention"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["libsql==0.1.11; sys_platform == 'linux'"]
+
+[project.scripts]
+historian = "historian.cli:main"
 
 [project.optional-dependencies]
 libsql = ["libsql==0.1.11"]
