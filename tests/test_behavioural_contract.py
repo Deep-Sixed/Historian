@@ -575,3 +575,18 @@ def test_relations_must_be_typed_not_duck_typed(eng):
                            "A": SourceRole.LOCAL_OPERATIONAL_DECISION,
                            "B": SourceRole.LOCAL_OPERATIONAL_DECISION}),
                        relations=(LooksLikeOne(),), routing=route(LOCAL_FRAME))
+
+
+def test_caller_frame_from_another_taxonomy_does_not_select_authority(eng):
+    question = Question("q1", "constructed question", caller_frame=UPSTREAM_FRAME,
+                        caller_taxonomy_version="frames-v0")
+    result = eng.adjudicate(
+        question=question, evidence=(ev("V"), ev("A")),
+        claims=(claim("V", "upstream"), claim("A", "local")),
+        source_role_proposals=roles({"V": SourceRole.UPSTREAM_VENDOR_MATERIAL,
+                                     "A": SourceRole.LOCAL_OPERATIONAL_DECISION}),
+        routing=route(LOCAL_FRAME),
+    )
+    assert result.frame == FrameTaxonomy.UNKNOWN
+    assert result.frame_is_caller_specified is False
+    assert result.resolution.routing_proposal_ref is None

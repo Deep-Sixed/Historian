@@ -112,7 +112,8 @@ class Adjudicator:
         A routing proposal that is REFUSED is not cited: the resolution did not route by it.
         """
         if question.caller_frame is not None:
-            if not self._tax.permits(question.caller_frame):
+            if (question.caller_taxonomy_version != self._tax.version
+                    or not self._tax.permits(question.caller_frame)):
                 return UNKNOWN, False, None
             return question.caller_frame, True, None
         if routing is None or not self._tax.permits(routing.proposed_frame):
