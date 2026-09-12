@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "historian"
-version = "0.1.0"
+version = "0.1.0a1"
 description = "Evidence adjudication layer for EVECOR: typed relations, provenance, structural abstention"
 requires-python = ">=3.13"
 dependencies = ["libsql==0.1.11; sys_platform == 'linux'"]
