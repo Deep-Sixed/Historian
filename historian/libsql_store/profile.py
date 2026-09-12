@@ -3,13 +3,15 @@ from historian.persistence.contract import Boundary, PersistenceProfile, ThreatM
 
 LIBSQL = PersistenceProfile(
     name="libsql-linux-peercred-service-v1",
-    version=1,
+    version=2,
     backend_family="libSQL",
     deployment_model="Linux local Unix socket service, Python 3.14.5, libsql Python 0.1.11; "
     "service UID 10000; private 0700 database directory and 0755 socket directory; "
     "WAL with foreign_keys enabled; no remote database endpoint.",
     credential_access_model="SO_PEERCRED kernel UID; fixed UID 10001..10009 capability mapping; "
-    "no shared database credential or bearer secret. Callers cannot acquire "
+    "assertion writes persist the kernel-derived principal and capability, and "
+    "the database constrains origin compatibility for UIDs 10004 and 10005. "
+    "No shared database credential or bearer secret. Callers cannot acquire "
     "service UID, root, container control, ptrace or database files.",
     trusted_boundaries=(Boundary.DATABASE, Boundary.TRUSTED_SERVICE),
     excluded_untrusted_boundaries=(
@@ -20,10 +22,7 @@ LIBSQL = PersistenceProfile(
     claimed_invariant_coverage=tuple(i.id for i in CATALOG),
     threat_model=ThreatModel(
         actors=(
-            (
-                "authorized_service",
-                "UID 10000 exclusively owns database and source verification.",
-            ),
+            ("authorized_service", "UID 10000 exclusively owns database access."),
             (
                 "specialized_writer",
                 (
@@ -54,6 +53,7 @@ LIBSQL = PersistenceProfile(
             "Ordinary callers have no sudo/setuid/ptrace privilege or Docker socket access.",
             "No host bind mount exposes database or source directory to a caller namespace.",
             "The service has a finite operation allowlist and no SQL or role-switch endpoint.",
+            "The database enforces assertion-origin compatibility for the fixed typed/reviewer UID map.",
             (
                 "UID 10002 verifier code is trusted to verify external adapter bytes before direct evidence intake; "
                 "the verify_source operation independently rereads configured RAG source bytes."

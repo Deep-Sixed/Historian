@@ -68,9 +68,9 @@ class LibSQLProbe:
         assert result["uid"] == uid
         return result
 
-    def call(self, capability, operation, **data):
+    def call(self, actor_role, operation, **data):
         result = self.worker(
-            ROLES.get(capability, 10099),
+            ROLES.get(actor_role, 10099),
             {
                 "kind": "service",
                 "socket": self.socket,
@@ -78,7 +78,7 @@ class LibSQLProbe:
                 "data": data,
             },
         )
-        assert result.get("principal") == f"uid:{ROLES.get(capability, 10099)}"
+        assert result.get("principal") == f"uid:{ROLES.get(actor_role, 10099)}"
         return result
 
     def ok(self, role, operation, **data):
@@ -118,6 +118,18 @@ class LibSQLProbe:
             observed or self.accepted(result),
             Boundary.TRUSTED_SERVICE,
             "Unix socket request authenticated using SO_PEERCRED",
+            access,
+            result["principal"],
+            result["capability"],
+        )
+
+    def assertion_db_result(self, result, access):
+        if not result["ok"] and result.get("error") != "assertion_origin_binding":
+            raise RuntimeError("assertion origin-binding rejection not proven")
+        return Observation(
+            self.accepted(result),
+            Boundary.DATABASE,
+            "SO_PEERCRED-derived assertion context persisted through service; libSQL constraint enforces origin compatibility",
             access,
             result["principal"],
             result["capability"],
@@ -443,8 +455,7 @@ class LibSQLProbe:
                 if s == "typed_assertion"
                 else "HUMAN_REVIEWED_PROPOSAL",
             )
-            # Honest placement: kernel/service identity enforcement is not DB enforcement.
-            return self.service_result(
+            return self.assertion_db_result(
                 result, normal if s == "typed_assertion" else bypass
             )
         if s in (
