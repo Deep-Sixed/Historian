@@ -42,30 +42,30 @@ jobs:
       - name: Lint Persistence v1 additions
         run: |
           python -m pip install ruff
-          ruff check --isolated --select E4,E7,E9,F historian/persistence tests/test_persistence_contract.py historian/libsql_store tests/libsql_probe.py tests/libsql_process.py tests/test_libsql_profile.py tests/test_libsql_storage.py tests/test_libsql_application.py
+          ruff check --isolated --select E4,E7,E9,F historian/persistence tests/test_persistence_contract.py historian/sqlite_store tests/sqlite_probe.py tests/sqlite_process.py tests/test_sqlite_profile.py tests/test_sqlite_storage.py tests/test_sqlite_application.py
       - name: Run core/static gate
         run: python -m pytest -q
 
-  libsql:
-    name: libSQL Linux peer-credential profile
+  sqlite:
+    name: SQLite Linux peer-credential profile
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build and test isolated libSQL profile
-        run: scripts/ci-libsql-profile.sh
-      - name: Publish exact libSQL profile result
+      - name: Build and test isolated SQLite profile
+        run: scripts/ci-sqlite-profile.sh
+      - name: Publish exact SQLite profile result
         if: always()
         run: |
           python3 - <<'PYCODE'
           import json, os
           from pathlib import Path
-          path = Path('/tmp/historian-libsql-artifacts/historian-libsql-conformance.json')
+          path = Path('/tmp/historian-sqlite-artifacts/historian-sqlite-conformance.json')
           if path.exists():
               report = json.loads(path.read_text())
               message = (f"{report['profile_name']} v{report['profile_version']} "
                          f"digest {report['profile_digest']}: {report['status']}")
           else:
-              message = 'libsql-linux-peercred-service-v1 v3: NOT_TESTED (report unavailable)'
+              message = 'sqlite-linux-peercred-service-v1 v1: NOT_TESTED (report unavailable)'
           print(message)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write(message + '\n')
@@ -73,8 +73,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: persistence-v1-libsql-evidence
-          path: /tmp/historian-libsql-artifacts/*.json
+          name: persistence-v1-sqlite-evidence
+          path: /tmp/historian-sqlite-artifacts/*.json
           if-no-files-found: warn
 
   package:

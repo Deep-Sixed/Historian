@@ -29,7 +29,7 @@ evidence from actual use before 1.0:
   end-to-end import/adjudication product command. Add a higher-level workflow only after
   alpha use identifies the specific missing steps.
 - Reconcile any external legacy data export through a separately validated import or
-  verified re-ingestion. The supported runtime remains libSQL-only.
+  verified re-ingestion. The supported runtime remains SQLite-only.
 
 Use alpha releases for fixes and workflow feedback, beta when the supported workflows
 and upgrade contract are stable, and a release candidate after the above evidence is

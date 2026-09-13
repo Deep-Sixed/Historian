@@ -1,8 +1,18 @@
-# Historian v0.1.0a2 — libSQL only
+# Unreleased — standard-library SQLite
 
-libSQL is now the only database in the supported source tree, install dependencies,
+The current source replaces the libSQL driver with Python's standard-library `sqlite3`.
+The Linux peer-credential boundary and application schema remain unchanged. The new
+`sqlite-linux-peercred-service-v1` profile has its own runtime-bound digest and must earn
+conformance independently. See docs/migration.md for existing local database handling.
+No new release or tag is created by this change; GitHub-retained history cleanup remains
+a release blocker.
+
+# Historical v0.1.0a2 — libSQL only (withdrawn)
+
+At that release, libSQL was the only database in the supported source tree, install dependencies,
 deployment path, case-queue tool and CI. The retired backend's implementation remains
-available only in historical release tags; no existing external database was modified.
+in rewritten Git history; the old release tags were withdrawn during sanitization.
+No existing external database was modified.
 
 Complete application stores now persist resolved/unresolved outputs, typed provenance
 edges, review events, ordered seeds/packets, independent adjudications and gold through

@@ -9,12 +9,13 @@ import json
 import os
 import socket
 import socketserver
+import sqlite3
 import struct
 import stat
 from pathlib import Path
 
-from historian.libsql_store.repository import Repository, canonical, initialize, transaction
-from historian.libsql_store.operations import storage_lock
+from historian.sqlite_store.repository import Repository, canonical, initialize, transaction
+from historian.sqlite_store.operations import storage_lock
 from historian.persistence.locator import locator_from_record, locator_to_record
 from historian.source_adapter import (
     CoordinatePart,
@@ -61,7 +62,7 @@ MAX_REQUEST = 1024 * 1024
 
 def dispatch(repository, operation, data, role, principal, corpus):
     if operation in {"put_object", "get_object", "get_packet_snapshot"}:
-        from historian.libsql_store.domain import dispatch as domain_dispatch
+        from historian.sqlite_store.domain import dispatch as domain_dispatch
         return domain_dispatch(repository,operation,data,role,principal,corpus)
     if role not in ALLOWED.get(operation, set()):
         raise PermissionError("capability denied")
@@ -205,11 +206,13 @@ class Handler(socketserver.StreamRequestHandler):
         except Exception as exc:  # noqa: BLE001 - sanitize errors at the process boundary
             # No SQL payloads, sources, paths or secrets in remote error responses.
             error = type(exc).__name__
-            # libsql 0.1.11 exposes constraint violations as ValueError. Match the
-            # entire named-CHECK signature; unrelated storage failures prove nothing.
-            if type(exc) is ValueError and str(exc) == (
+            # Require the SQLite CHECK error code and the entire named signature;
+            # unrelated constraints and storage failures prove nothing about PV17.
+            if (type(exc) is sqlite3.IntegrityError
+                and getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_CONSTRAINT_CHECK
+                and str(exc) == (
                 "CHECK constraint failed: assertion_origin_binding"
-            ):
+            )):
                 error = "assertion_origin_binding"
             response = {"ok": False, "error": error}
         finally:
