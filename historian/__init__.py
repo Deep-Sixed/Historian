@@ -1,4 +1,4 @@
-"""EVECOR Historian — evidence adjudication over RAG v1 retrieval and ledger claims.
+"""Historian — evidence qualification and question-bound adjudication.
 
 The Historian does not decide what is true. It decides what relationships between
 retrieved evidence are actually ESTABLISHED, and what conclusion — if any — those

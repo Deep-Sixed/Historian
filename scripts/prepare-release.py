@@ -1,4 +1,4 @@
-"""Validate downloaded current-commit CI evidence before private release publication."""
+"""Validate downloaded current-commit CI evidence before release publication."""
 import argparse
 import hashlib
 import json

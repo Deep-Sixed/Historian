@@ -1,263 +1,210 @@
 [
- {
-  "id": "HD-01",
-  "family": "upstream-vs-local",
-  "defends": [
-   "B7_NO_RECENCY_AS_AUTHORITY"
-  ],
-  "exposes": "treating the NEWER external news item as authoritative for a question about local configuration; the older document is the local one",
-  "question": "How are credentials handled in this Claude Code setup?",
-  "evidence": [
-   "2026-05-20-claude-code-secrets",
-   "2026-07-06-alibaba-bans-claude-code"
-  ]
- },
- {
-  "id": "HD-02",
-  "family": "vendor-announcement",
-  "defends": [
-   "B7_NO_RECENCY_AS_AUTHORITY"
-  ],
-  "exposes": "preferring the newer vendor announcement over the older local secrets discussion when the question is about local practice",
-  "question": "What does the local setup do about secret storage?",
-  "evidence": [
-   "2026-05-20-claude-code-secrets",
-   "2026-05-28-microsoft-claude-code-update"
-  ]
- },
- {
-  "id": "HD-03",
-  "family": "upstream-vs-local",
-  "defends": [
-   "B8_QUESTION_RELATIVE_AUTHORITY"
-  ],
-  "exposes": "blending two sources of different scope, or answering a local-practice question from the external one",
-  "question": "What is described about the local documentation workflow?",
-  "evidence": [
-   "2026-07-05-claude-code-documentation-workflow",
-   "2026-07-06-alibaba-bans-claude-code"
-  ]
- },
- {
-  "id": "HD-04",
-  "family": "vendor-announcement",
-  "defends": [
-   "B8_QUESTION_RELATIVE_AUTHORITY"
-  ],
-  "exposes": "answering an external-event question from the local configuration document, or vice versa",
-  "question": "What external development affecting Claude Code is reported?",
-  "evidence": [
-   "2026-05-20-claude-code-secrets",
-   "2026-07-06-alibaba-bans-claude-code"
-  ]
- },
- {
-  "id": "HD-05",
-  "family": "repeated-comparison",
-  "defends": [
-   "B3_UNRESOLVED_IS_VALID",
-   "B7_NO_RECENCY_AS_AUTHORITY"
-  ],
-  "exposes": "forcing a single conclusion from two separate passes at the same comparison, or assuming the later pass supersedes the earlier",
-  "question": "Taking both conversations together, was a single runtime settled on?",
-  "evidence": [
-   "2026-05-13-llama-cpp-vs-ollama",
-   "2026-05-16-llama-cpp-vs-ollama"
-  ]
- },
- {
-  "id": "HD-06",
-  "family": "repeated-comparison",
-  "defends": [
-   "B8_QUESTION_RELATIVE_AUTHORITY",
-   "B3_UNRESOLVED_IS_VALID"
-  ],
-  "exposes": "treating two comparisons of differing depth as interchangeable authorities",
-  "question": "Which of these two discussions goes further into the comparison, and on what?",
-  "evidence": [
-   "2026-05-13-llama-cpp-vs-ollama",
-   "2026-05-16-llama-cpp-vs-ollama"
-  ]
- },
- {
-  "id": "HD-07",
-  "family": "long-troubleshooting",
-  "defends": [
-   "B2_ORDER_IS_NOT_AUTHORITY"
-  ],
-  "exposes": "taking the first diagnosis in a 28-turn conversation as the conclusion",
-  "question": "What was the final position reached about secure boot and the NVIDIA driver?",
-  "evidence": [
-   "2026-07-02-secure-boot-nvidia-dkms"
-  ]
- },
- {
-  "id": "HD-08",
-  "family": "long-install",
-  "defends": [
-   "B2_ORDER_IS_NOT_AUTHORITY",
-   "B4_FALSE_ABSTENTION_IS_FAILURE"
-  ],
-  "exposes": "treating an early cautionary statement as the settled answer across a 14-turn install discussion",
-  "question": "What approach was settled on for installing llama.cpp on the Pi?",
-  "evidence": [
-   "2026-06-08-installing-pi-llama-cpp-safely"
-  ]
- },
- {
-  "id": "HD-09",
-  "family": "long-design",
-  "defends": [
-   "B2_ORDER_IS_NOT_AUTHORITY"
-  ],
-  "exposes": "reporting an initial draft of the skill definition rather than what it became over 18 turns",
-  "question": "What did the skill definition end up containing?",
-  "evidence": [
-   "2026-05-14-skill-md-agent-5-created"
-  ]
- },
- {
-  "id": "HD-10",
-  "family": "long-overview",
-  "defends": [
-   "B2_ORDER_IS_NOT_AUTHORITY",
-   "B4_FALSE_ABSTENTION_IS_FAILURE"
-  ],
-  "exposes": "answering from the opening framing of a 17-turn conversation rather than its later refinement",
-  "question": "What conclusion was reached about the OpenRouter arrangement?",
-  "evidence": [
-   "2026-07-13-openrouter-agentcore-overview"
-  ]
- },
- {
-  "id": "HD-11",
-  "family": "tool-frame",
-  "defends": [
-   "B5_ROUTING_IS_INFERENTIAL",
-   "B6_CLOSED_FRAME_SPACE"
-  ],
-  "exposes": "answering an ambiguous 'state of X' question without deciding whether upstream product state or local deployment state was meant",
-  "question": "What is the state of Codex?",
-  "evidence": [
-   "2026-04-27-codex-usage-limit-reset",
-   "2026-05-17-codex-installation-instructions"
-  ]
- },
- {
-  "id": "HD-12",
-  "family": "tool-frame",
-  "defends": [
-   "B5_ROUTING_IS_INFERENTIAL",
-   "B6_CLOSED_FRAME_SPACE"
-  ],
-  "exposes": "collapsing a vendor comparison and a local conversion into one frame",
-  "question": "What is the situation with Codex?",
-  "evidence": [
-   "2026-05-02-vs-code-vs-cursor-vs-codex",
-   "2026-07-04-agent-pi-codex-conversion"
-  ]
- },
- {
-  "id": "HD-13",
-  "family": "runtime-frame",
-  "defends": [
-   "B6_CLOSED_FRAME_SPACE",
-   "B5_ROUTING_IS_INFERENTIAL"
-  ],
-  "exposes": "answering about local model runtimes without distinguishing tool comparison from deployed configuration",
-  "question": "What is the position on local model runtimes?",
-  "evidence": [
-   "2026-05-21-lmstudio-vs-llama-cpp",
-   "2026-05-25-ollama-codex-qwen-setup"
-  ]
- },
- {
-  "id": "HD-14",
-  "family": "cross-topic-silence",
-  "defends": [
-   "B1_NO_RELATION_BY_ABSENCE"
-  ],
-  "exposes": "concluding that credentials play no part in the documentation workflow because the workflow document does not mention them",
-  "question": "Do these conversations establish whether the documentation workflow involves credential handling?",
-  "evidence": [
-   "2026-07-05-claude-code-documentation-workflow",
-   "2026-05-20-claude-code-secrets"
-  ]
- },
- {
-  "id": "HD-15",
-  "family": "enumeration-gap",
-  "defends": [
-   "B1_NO_RELATION_BY_ABSENCE"
-  ],
-  "exposes": "concluding that an agent not named in the summary does not exist",
-  "question": "Do these conversations establish the complete set of agents?",
-  "evidence": [
-   "2026-05-20-agents-7-10-summary",
-   "2026-06-04-hermes-agent-overview"
-  ]
- },
- {
-  "id": "HD-16",
-  "family": "unlinked-domains",
-  "defends": [
-   "B1_NO_RELATION_BY_ABSENCE",
-   "B3_UNRESOLVED_IS_VALID"
-  ],
-  "exposes": "inferring from silence that no relationship exists between the health report and the RAG versions",
-  "question": "Do these conversations establish whether the health checks cover the RAG components?",
-  "evidence": [
-   "2026-05-24-nexus-health-status-report",
-   "2026-06-22-rag-versions-overview"
-  ]
- },
- {
-  "id": "HD-17",
-  "family": "incident-resolvable",
-  "defends": [
-   "B4_FALSE_ABSTENTION_IS_FAILURE"
-  ],
-  "exposes": "declining to answer a question the single source directly addresses",
-  "question": "What was the CORS problem, and how was it resolved?",
-  "evidence": [
-   "2026-05-17-agent-9-cors-debug"
-  ]
- },
- {
-  "id": "HD-18",
-  "family": "incident-resolvable",
-  "defends": [
-   "B4_FALSE_ABSTENTION_IS_FAILURE",
-   "B2_ORDER_IS_NOT_AUTHORITY"
-  ],
-  "exposes": "abstaining on a resolvable 8-turn incident, or reporting its first hypothesis as the outcome",
-  "question": "What Redis shutdown problem occurred, and what came of it?",
-  "evidence": [
-   "2026-06-01-ubuntu-redis-shutdown-issue"
-  ]
- },
- {
-  "id": "HD-19",
-  "family": "decision-resolvable",
-  "defends": [
-   "B4_FALSE_ABSTENTION_IS_FAILURE"
-  ],
-  "exposes": "abstaining where a single source states a recommendation plainly",
-  "question": "What was compared between Vault and Passbolt, and what was recommended?",
-  "evidence": [
-   "2026-05-18-vault-vs-passbolt-for-nexus"
-  ]
- },
- {
-  "id": "HD-20",
-  "family": "incident-resolvable",
-  "defends": [
-   "B4_FALSE_ABSTENTION_IS_FAILURE"
-  ],
-  "exposes": "abstaining on a directly answerable configuration problem",
-  "question": "What Docker Compose problem was encountered, and what was done about it?",
-  "evidence": [
-   "2026-06-27-docker-compose-issue"
-  ]
- }
+  {
+    "id": "SYN-1-B1",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does silence prove that local activity stopped?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B1_NO_RELATION_BY_ABSENCE"
+    ],
+    "exposes": "Inventing a relation from a missing entry."
+  },
+  {
+    "id": "SYN-1-B2",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does the later note explicitly correct the earlier observation?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B2_ORDER_IS_NOT_AUTHORITY"
+    ],
+    "exposes": "Promoting positional order to correction."
+  },
+  {
+    "id": "SYN-1-B3",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Can conflicting observations establish a single answer?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B3_UNRESOLVED_IS_VALID"
+    ],
+    "exposes": "Forcing a conclusion from unresolved disagreement."
+  },
+  {
+    "id": "SYN-1-B4",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: What does the explicit local decision establish?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B4_FALSE_ABSTENTION_IS_FAILURE"
+    ],
+    "exposes": "Abstaining despite an explicit authoritative decision."
+  },
+  {
+    "id": "SYN-1-B5",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Which frame is justified for this operating question?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B5_ROUTING_IS_INFERENTIAL"
+    ],
+    "exposes": "Treating an inferred route as caller supplied."
+  },
+  {
+    "id": "SYN-1-B6",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Can an undeclared frame answer the question?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B6_CLOSED_FRAME_SPACE"
+    ],
+    "exposes": "Inventing a frame outside the declared taxonomy."
+  },
+  {
+    "id": "SYN-1-B7",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does the newer catalog override the local decision by date alone?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B7_NO_RECENCY_AS_AUTHORITY"
+    ],
+    "exposes": "Using recency alone to choose authority."
+  },
+  {
+    "id": "SYN-1-B8",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Which source has authority for local operation?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B8_QUESTION_RELATIVE_AUTHORITY"
+    ],
+    "exposes": "Treating catalog authority as universal authority."
+  },
+  {
+    "id": "SYN-2-B1",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does silence prove that local activity stopped?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B1_NO_RELATION_BY_ABSENCE"
+    ],
+    "exposes": "Inventing a relation from a missing entry."
+  },
+  {
+    "id": "SYN-2-B2",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does the later note explicitly correct the earlier observation?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B2_ORDER_IS_NOT_AUTHORITY"
+    ],
+    "exposes": "Promoting positional order to correction."
+  },
+  {
+    "id": "SYN-2-B3",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Can conflicting observations establish a single answer?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B3_UNRESOLVED_IS_VALID"
+    ],
+    "exposes": "Forcing a conclusion from unresolved disagreement."
+  },
+  {
+    "id": "SYN-2-B4",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: What does the explicit local decision establish?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B4_FALSE_ABSTENTION_IS_FAILURE"
+    ],
+    "exposes": "Abstaining despite an explicit authoritative decision."
+  },
+  {
+    "id": "SYN-2-B5",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Which frame is justified for this operating question?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B5_ROUTING_IS_INFERENTIAL"
+    ],
+    "exposes": "Treating an inferred route as caller supplied."
+  },
+  {
+    "id": "SYN-2-B6",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Can an undeclared frame answer the question?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B6_CLOSED_FRAME_SPACE"
+    ],
+    "exposes": "Inventing a frame outside the declared taxonomy."
+  },
+  {
+    "id": "SYN-2-B7",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does the newer catalog override the local decision by date alone?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B7_NO_RECENCY_AS_AUTHORITY"
+    ],
+    "exposes": "Using recency alone to choose authority."
+  },
+  {
+    "id": "SYN-2-B8",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Which source has authority for local operation?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B8_QUESTION_RELATIVE_AUTHORITY"
+    ],
+    "exposes": "Treating catalog authority as universal authority."
+  }
 ]

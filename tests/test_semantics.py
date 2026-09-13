@@ -30,7 +30,7 @@ def ev(source="doc-a", ver="v1", start=1, end=10):
 
 
 def test_precedes_is_deterministic_within_one_version():
-    """Canary S2: 'Root Cause: Disk Full' precedes 'second root cause on top of it'."""
+    """Two synthetic spans in one revision have a deterministic positional order."""
     a = ev(start=51, end=54)      # earlier passage
     b = ev(start=111, end=126)    # later passage, same file, same date
     assert same_source(a, b)

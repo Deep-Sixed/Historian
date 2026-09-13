@@ -58,7 +58,5 @@ that mapping lossless.
 
 ## Parser Deferral
 
-This document does not specify the production parser. PR #4 can implement the first
-conforming adapter after the contract stabilizes. The existing ChatGPT export corpus is a
-good first target because Historian already has operational experience with it; Google
-Takeout can then test that the contract generalizes.
+This document does not specify the production parser. Any future parser must prove the
+adapter contract with synthetic fixtures before separately authorized corpus validation.

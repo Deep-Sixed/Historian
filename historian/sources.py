@@ -27,9 +27,8 @@ class RagV1SourceReader:
 
     `source_id` is the document id (the corpus filename stem, matching RAG v1's
     document_id metadata). `version_hash` is the sha256 of the whole file, so a reference
-    pins one immutable revision: we have a live case where a document's indexed
-    representation differs from the original archive, and line 800 need not denote the
-    same text across revisions.
+    pins one immutable revision: an indexed representation can differ from the original
+    archive, and the same line number need not denote the same text across revisions.
     """
 
     source_system = "RAG_V1"

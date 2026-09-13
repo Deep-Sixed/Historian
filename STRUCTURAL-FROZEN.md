@@ -36,7 +36,7 @@ not "I found another thing to tidy":
    "the opposite contamination" below.
 
 Current suite: **188 tests, three consecutive clean runs**, of which 26 exercise the
-evidence verifier against the real 2,492-document RAG v1 corpus and the remainder run
+evidence verifier against external source material and the remainder run
 against a live PostgreSQL instance under `scram-sha-256` with per-capability credentials.
 
 ### The opposite contamination

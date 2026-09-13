@@ -7,8 +7,6 @@
     POST-FREEZE SANCTIONED DELTA 2026-08-22    188 tests
     BEHAVIOURAL CONTRACT + GATE  2026-08-23    208 tests
     CLOSURE-REVIEW FIXES         2026-08-23    220 tests   <- v0 RELEASE GATE
-    REAL-CORPUS CANARY           2026-08-23    +42 tests   <- NON-BLOCKING
-    FULL SUITE                                 262 tests
 
 The freeze is recorded at the number it was taken at. Later totals are stated separately
 rather than overwriting it, for the same reason the RAG v1 canary baseline was not redefined
@@ -27,8 +25,6 @@ as a weakening rather than presented as equivalent.
                       contract coverage gate               4 tests   ENFORCED
                                                          --------
                                                           220 tests
-
-    NON-BLOCKING      real-corpus canary HD-01..HD-20     42 tests   SIGNAL ONLY
 
     OPTIONAL          independently adjudicated gold       0 cases   NOT AVAILABLE
                       (machinery retained, unmodified)                NOT A RELEASE GATE
@@ -79,24 +75,11 @@ irrelevant, and rarely arrives with a determinable answer — which is precisely
 it needs an independent adjudicator, and why that path is retained rather than deleted.
 **Passing the contract is evidence about the rules, not about the corpus.**
 
-## The real-corpus canary (HD-01..HD-20)
+## Public synthetic replacement
 
-The v3 queue is preserved in full and reframed. It is **not** human-gold acceptance and
-contributes **zero** gold coverage.
-
-    20 cases · 24 evidence documents · 29 assignments · 14 families
-
-What it verifies automatically, on every run:
-
-1. every evidence document still resolves and reads from the RAG v1 corpus
-2. the adjudicator executes over real corpus evidence and produces a well-formed decision
-3. an unrouted real-evidence case degrades to `UNKNOWN` frame rather than inventing one
-4. the queue shape has not silently drifted (case, document, assignment, family counts)
-5. `AUDIT-V3.py` still passes as a gate rather than a one-off report
-
-What it deliberately does **not** verify: whether any decision is *correct*. Nobody has
-established the answers, so nothing here grades a conclusion. Marked `canary` and excluded
-from the release gate — a failure is a signal to investigate, not a release blocker.
+The former corpus-derived queue and reports were removed for public release. The
+public synthetic queue exercises source readability, unrouted adjudication and structural
+case coverage in normal CI. It supplies no real-corpus validation or human gold.
 
 ## Human gold: retained, optional, still honest
 
@@ -109,25 +92,11 @@ coverage from real seed ids — is retained, tested, and unmodified. If an indep
 adjudicator ever becomes available, the machinery to consume their verdicts already exists
 and already passes its tests. v0 simply does not wait on it.
 
-Neither Claude nor Charles can supply that adjudication: both have seen the designer
-material, so any verdict from either is `HUMAN_REVIEWED_PROPOSAL` and permanently
-`gold_eligible = false`. That constraint is unchanged by this closure.
+Anyone who has already seen a proposed answer cannot provide independent blind gold
+for that example. Use fresh, independently adjudicated cases.
 
-## Scope boundary
-
-**RAG v1 is untouched.** No file under `data/ragflow-production/` or `data/ragflow-canary/`
-was modified. RAG v1 remains closed at 2,492 documents / 26,127 chunks, integrity 23/23,
-valid acceptance 12/12.
-
-## Verification
-
-    python3 -m pytest -q -m 'not canary'    220 passed   (v0 release gate)
-    python3 -m pytest -q                    262 passed   (gate + canary)
-
-Release gate: 5 consecutive clean runs post-fix. Full suite: 3 consecutive clean runs
-post-fix. (The pre-fix suite ran 8 and 4 clean respectively, which is exactly why the
-section below exists: a green suite is evidence about what it tests, not about what it
-does not.)
+Historical private-corpus reports are not distributed with the supported source tree.
+Current verification commands are in RUNBOOK.md.
 
 ## Closure review — three defects, found after the suite was green
 

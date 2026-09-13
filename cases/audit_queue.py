@@ -9,18 +9,20 @@ These conditions are necessary, not sufficient. Passing means "this case is capa
 exposing the failure", never "this case will". Sufficiency needs a human reading content,
 which this audit deliberately does not do.
 """
-import json, re, sys
+import argparse
+import json
+import re
+import sys
 from pathlib import Path
 
-C = Path("/mnt/jarvis-data/projects/chatgpt-export/corpus")
-CASES = json.loads((Path(__file__).parent / "case-queue.json").read_text())
+from historian.coverage import BEHAVIOURAL_INVARIANTS
 
 
-def facts(c):
+def facts(c, corpus):
     ds = c["evidence"]
     turns, dates = [], []
     for d in ds:
-        h = (C / f"{d}.md").read_text(errors="replace")[:1200]
+        h = (corpus / f"{d}.md").read_text(errors="replace")[:1200]
         turns.append(int(re.search(r"^turns: (\d+)", h, re.M).group(1)))
         dates.append(d[:10])
     return {"n": len(ds), "turns": turns, "dates": dates,
@@ -51,10 +53,15 @@ def check(short, f, c):
 
 def main():
     import collections
-    print("v3 CASE-TO-INVARIANT AUDIT — necessary conditions, shape only\n")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--corpus", type=Path, default=Path(__file__).parent / "synthetic")
+    parser.add_argument("--queue", type=Path, default=Path(__file__).parent / "case-queue.json")
+    args = parser.parse_args()
+    cases = json.loads(args.queue.read_text())
+    print("SYNTHETIC CASE AUDIT — necessary conditions, not gold\n")
     ok_by, tally, problems = collections.defaultdict(list), collections.Counter(), []
-    for c in CASES:
-        f = facts(c)
+    for c in cases:
+        f = facts(c, args.corpus)
         line = f"{c['id']}  {f['n']} src, dates {'/'.join(sorted(set(f['dates'])))}, turns {f['turns']}"
         verdicts = []
         for inv in c["defends"]:
@@ -81,7 +88,7 @@ def main():
           f"{tally['NO_EXPOSES']} missing rationale\n")
     print(f"  {'invariant':34} {'cases':>5} {'fam':>4}  status")
     incomplete = False
-    for inv in sorted({i for c in CASES for i in c["defends"]}):
+    for inv in BEHAVIOURAL_INVARIANTS:
         got = ok_by.get(inv, [])
         fams = {x for _, x in got}
         good = len(got) >= 2 and len(fams) >= 2

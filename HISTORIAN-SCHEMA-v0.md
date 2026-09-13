@@ -77,8 +77,7 @@ is a field someone can set.
 `AssertedRelation(origin=TYPED_SOURCE, typed_source_ref=<ledger claim>)` deterministically
 means *this ledger claim explicitly encodes relation X*. It does not mean X is globally
 authoritative. Correspondingly, **absence of a ledger assertion proves nothing** about
-whether the relation or event exists — the EVECOR ledger has a documented 35-minute
-recording gap during which real work produced no claims on a healthy ledger.
+whether the relation or event exists: a healthy source can still omit events.
 
 Source *completeness* and assertion *explicitness* are separate concepts and must stay
 separate. No completeness score is modelled; UNKNOWN is the safe assumption.
@@ -153,9 +152,8 @@ Recording them makes "converged across the frames considered" checkable rather t
 
 ## 3. Deterministic source position (B2)
 
-Rev 1 buried ordering inside an opaque `passage_ref`. B2's own originating failure — canary
-S2, where "Root Cause: Disk Full" is followed later in the *same file, same date* by "there's
-a second root cause on top of the disk issue" — was therefore awkward to express.
+Rev 1 buried ordering inside an opaque `passage_ref`. A synthetic observation followed
+by a second observation in the same file needs explicit coordinates to express its order.
 
 ### SourcePosition
 
@@ -177,7 +175,7 @@ no new parser proven correct before the Historian can cite evidence.
 TURN/MESSAGE are optional derived coordinates, populated only after a corpus-wide parser
 audit. That audit is worth doing but must not block structural gates: `### User` /
 `### Assistant` markers *look* consistent, and "looks consistent across the ones I read" is
-exactly the claim this corpus has already falsified three times. CHUNK remains a last resort
+insufficient proof of consistent parsing. CHUNK remains a last resort
 — chunk order is a retrieval representation, and using it would make Historian ordering
 depend on RAG v1 chunking.
 
@@ -190,8 +188,7 @@ Deterministic helpers operate on canonical LINE coordinates, **no model involved
 **The boundary this type enforces:** `precedes(A, B)` establishes *B occurs after A*. It
 establishes **nothing** about supersession. Any SUPERSEDES/CORRECTS/AUGMENTS relation still
 requires explicit textual evidence, a typed link, or it stays unresolved. Order is evidence;
-it is not precedence. For canary S2 this is sufficient to say the "second root cause" passage
-is later in the same source, without claiming it replaces the disk-full passage.
+it is not precedence. A later observation need not replace an earlier observation.
 
 ---
 
@@ -241,7 +238,7 @@ The independence is the point:
 reads as *the supporting relations are explicit assertions, but the conclusion drawn from
 them was still model inference* — a state rev 1 could not express.
 
-    HIST-C3-style authority judgement
+    question-relative authority judgement
         support_profile   = PROPOSED_DEPENDENT      (derived)
         resolution_method = MODEL_INFERENCE
 

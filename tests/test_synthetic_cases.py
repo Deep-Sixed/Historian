@@ -1,18 +1,12 @@
-"""HD-01..HD-20 real-corpus canary. NON-BLOCKING by design.
+"""Public synthetic replacement for source readability and unrouted queue regression.
 
-These cases use messy real evidence whose answers nobody has established, so they cannot
-grade a conclusion. What they CAN prove, automatically and repeatedly, is that the pipeline
-still processes real corpus material end to end: evidence still verifies against source
-bytes, seeds and packets still finalize, and the adjudicator runs over real evidence without
-error.
-
-They are marked `canary` and excluded from the release gate. A failure here is a signal to
-investigate, not a reason to block - the release gate is the deterministic behavioural
-contract, whose expected results are known by construction.
+Runs without external data in normal CI. It does not establish real-corpus readiness
+or independent gold; B1-B8 outcomes are tested by the behavioural contract suite.
 """
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -24,10 +18,8 @@ from historian.types import (
     SourceRole, SourceRoleProposal, SourceSystem,
 )
 
-pytestmark = pytest.mark.canary
-
 HERE = Path(__file__).resolve().parent.parent
-CORPUS = Path("/mnt/jarvis-data/projects/chatgpt-export/corpus")
+CORPUS = HERE / "cases/synthetic"
 CASES = json.loads((HERE / "cases/case-queue.json").read_text())
 TAX = FrameTaxonomy("frames-v1", ("CURRENT_OPERATIONAL_STATE", "UPSTREAM_PRODUCT_STATE"))
 POLICY = AuthorityPolicy("frames-v1", {
@@ -38,8 +30,6 @@ POLICY = AuthorityPolicy("frames-v1", {
 
 @pytest.fixture(scope="module")
 def reader():
-    if not CORPUS.is_dir():
-        pytest.skip("RAG v1 corpus unavailable")
     return RagV1SourceReader(CORPUS)
 
 
@@ -53,9 +43,8 @@ def test_evidence_still_verifies_against_source(case, reader):
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c["id"] for c in CASES])
-def test_adjudicator_runs_over_real_evidence(case, reader):
-    """Runs the engine on real corpus evidence. Asserts it produces a well-formed decision
-    - NOT that the decision is correct, which nobody has established."""
+def test_adjudicator_runs_over_synthetic_evidence(case, reader):
+    """An unrouted case must produce a well-formed decision with an unknown frame."""
     eng = Adjudicator(TAX, POLICY)
     qid = f"q-{case['id']}"
     evs, claims, roles = [], [], []
@@ -80,15 +69,29 @@ def test_adjudicator_runs_over_real_evidence(case, reader):
 
 def test_queue_shape_is_unchanged(reader):
     """Guards the queue against silent drift: counts that documentation depends on."""
-    assert len(CASES) == 20
-    assert len({d for c in CASES for d in c["evidence"]}) == 24
-    assert sum(len(c["defends"]) for c in CASES) == 29
-    assert len({c["family"] for c in CASES}) == 14
+    assert len(CASES) == 16
+    assert len({d for c in CASES for d in c["evidence"]}) == 4
+    assert sum(len(c["defends"]) for c in CASES) == 16
+    assert len({c["family"] for c in CASES}) == 2
 
 
 def test_case_invariant_audit_still_passes(reader):
     """The v3 audit is a gate, not a one-off report."""
-    r = subprocess.run(["python3", str(HERE / "cases/AUDIT-V3.py")],
+    r = subprocess.run([sys.executable, str(HERE / "cases/audit_queue.py")],
                        capture_output=True, text=True, timeout=300, cwd=HERE)
-    assert r.returncode == 0, f"case-to-invariant audit regressed:\n{r.stdout[-1500:]}"
+    assert r.returncode == 0, f"case-to-invariant audit regressed:\n{r.stdout[-1500:]}\n{r.stderr[-1500:]}"
     assert "ALL INVARIANTS MEET THE NECESSARY CONDITION" in r.stdout
+
+
+def test_case_audit_rejects_missing_invariant_and_family(tmp_path):
+    """Deleting coverage must fail even if every surviving assignment is valid."""
+    for surviving in (
+        [c for c in CASES if not c["defends"][0].startswith("B8_")],
+        [c for c in CASES if c["family"] == "observatory"],
+    ):
+        queue = tmp_path / "queue.json"
+        queue.write_text(json.dumps(surviving))
+        run = subprocess.run([sys.executable, str(HERE / "cases/audit_queue.py"),
+                              "--queue", str(queue)], capture_output=True, text=True)
+        assert run.returncode == 1
+        assert "SOME INVARIANTS BELOW MINIMUM" in run.stdout

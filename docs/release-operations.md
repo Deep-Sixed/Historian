@@ -7,12 +7,11 @@ non-Linux installations can use the pure adjudication library but cannot run the
 
 ## Install
 
-Download the wheel and SHA256SUMS from the private GitHub release and verify the
+Download the wheel and SHA256SUMS from the GitHub release and verify the
 checksum. Install into a dedicated Python 3.14.5 virtual environment at
 `/opt/historian/venv`, using `python -m pip install /path/to/historian-*.whl`.
 Run `historian profile`. The wheel includes the storage schema; no source checkout
-or current-directory dependency is required. Do not publish this package to PyPI or
-change repository visibility as part of a private release.
+or current-directory dependency is required. PyPI publication and production rollout require separate release decisions.
 
 Before provisioning, inspect `getent passwd` and `getent group` for UID/GID conflicts.
 Reserve UID/GID 10000 for the service and 10001–10009 for the profile's capabilities:
@@ -75,5 +74,6 @@ Each release must pass core, Source Adapter, application and libSQL suites and a
 installed-wheel smoke test. Preserve the profile report, supplemental boundary evidence,
 commit SHA, wheel/sdist, and checksums. libSQL v3 must pass all 43 probes and 124 boundary
 checks plus the domain capability matrix. No retired database runs in CI.
-The real-corpus canary is NOT RUN on hosted CI without the private corpus. It is not a
-substitute for field validation. Pre-releases remain explicitly pre-release and private.
+Hosted CI uses synthetic evidence and does not establish real-corpus readiness.
+Pre-releases remain explicitly pre-release. See public-release-safety.md for the
+separate historical source and release-artifact scrub.
