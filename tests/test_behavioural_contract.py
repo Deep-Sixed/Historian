@@ -6,8 +6,8 @@ what makes this suite a release gate where the real-corpus queue cannot be one.
 
 WHAT THIS SUITE DOES NOT ESTABLISH, stated up front so it is never over-read: these are
 clean constructed cases. Passing shows the RULES are right, not that the Historian survives
-messy real evidence. The HD-01..HD-20 corpus canary covers that and is deliberately
-non-blocking.
+messy real evidence. Representative real-corpus validation remains a separate release
+gate; the public synthetic queue does not establish it.
 
 Assertions are on machine-checkable outputs only - outcome enum, evidence ids, frame,
 caller-specified flag, silence, conflict. No prose is graded.

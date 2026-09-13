@@ -9,12 +9,14 @@ can support.
 
 The current pre-1.0 release is `v0.1.0a2`. It includes source adapters,
 question-bound adjudication and the default Linux peer-credential libSQL service.
-The frozen original baseline remains available at `v0.0.0-original`.
+Historical tags and releases require a separate privacy scrub; see
+[public-release safety](docs/public-release-safety.md) before using them.
 
 See [installation and backup/restore](docs/release-operations.md),
 [migration](docs/migration.md), and [the remaining 1.0 gates](docs/road-to-1.0.md).
 
-Historian remains private while public-release safeguards are still under review.
+Historian is public. Committed examples use synthetic evidence; private source material
+and generated intake artifacts belong outside the repository.
 
 Persistence and security guarantees are specified in [Persistence v1](docs/persistence-v1.md).
 The only database is the [libSQL Linux service profile](docs/libsql-profile-v3.md).

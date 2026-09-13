@@ -341,8 +341,8 @@ class AssertedRelation:
     ASSERTED DOES NOT MEAN: the relation is objectively true.
 
     Correspondingly, ABSENCE of an assertion proves nothing about whether the relation or
-    event exists. The redacted ledger has a documented recording gap in which real work
-    produced no claims on a healthy ledger. Source completeness and assertion explicitness
+    event exists. A source may omit events even when its storage is healthy.
+    Source completeness and assertion explicitness
     are separate concepts and are kept separate here; no completeness score is modelled.
     """
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 python -m build
+python scripts/scan-distributions.py
 package_env=$(mktemp -d)
 trap 'rm -rf "$package_env"' EXIT
 python -m venv "$package_env/venv"
