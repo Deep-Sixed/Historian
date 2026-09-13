@@ -8,8 +8,9 @@ The first alpha supplies a tested library, low-level service CLI, installation g
 backup/restore, strict schema checks and retained conformance evidence. It is not a
 claim that a production host has been provisioned or that historical data has migrated.
 
-First complete public-tree sanitization and the separately approved history/tag/release
-scrub described in [public-release safety](public-release-safety.md). Then establish
+Public-tree sanitization and the writable-history/tag/release scrub are complete.
+First resolve the [remaining GitHub-retained history](history-sanitization.md)
+before creating a release or tag. Then establish
 evidence from actual use before 1.0:
 
 - Run a representative private source corpus through intake and adjudication. Confirm

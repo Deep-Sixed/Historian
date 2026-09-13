@@ -7,6 +7,11 @@ non-Linux installations can use the pure adjudication library but cannot run the
 
 ## Install
 
+Previous release assets were withdrawn during history sanitization. Until a new audited
+release is available, build a wheel from a fresh clone of current main with
+`python -m pip install build` followed by `python -m build`, then follow the wheel
+installation steps below. See [cleanup status](history-sanitization.md).
+
 Download the wheel and SHA256SUMS from the GitHub release and verify the
 checksum. Install into a dedicated Python 3.14.5 virtual environment at
 `/opt/historian/venv`, using `python -m pip install /path/to/historian-*.whl`.

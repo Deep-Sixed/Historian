@@ -22,10 +22,14 @@ For a distribution, extract it into an isolated directory and run the guard with
 `--tree DIRECTORY`. The packaging job scans both the wheel and source distribution.
 Build outputs are not source fixtures and must not be committed.
 
-## Separate history operation — pending approval of PR #16
+## Separate history operation — GitHub cleanup pending
 
-Cleaning a branch tip does not clean old commits, tags, pull-request refs or releases.
-Do not represent this PR as removal of historical exposure. After approval:
+PR #16 was approved and merged. All writable branches have been rewritten, old tags and
+releases withdrawn, and pre-scrub workflow runs removed. GitHub still retains closed
+pull-request refs and old commits; see [the verification record](history-sanitization.md).
+No new release or tag should be created until that remaining exposure is resolved.
+
+The complete history-removal checklist is:
 
 1. Inventory remote branches, tags, pull-request refs and release assets in a restricted
    local mirror. Keep any recovery copy private and outside the public repository.

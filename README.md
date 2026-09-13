@@ -7,10 +7,12 @@ re-verifiable source identity and versioning, normalizes records without copying
 authority away from the original material, and adjudicates what conclusions that evidence
 can support.
 
-The current pre-1.0 release is `v0.1.0a2`. It includes source adapters,
+The current source version is `v0.1.0a2`. It includes source adapters,
 question-bound adjudication and the default Linux peer-credential libSQL service.
-Historical tags and releases require a separate privacy scrub; see
-[public-release safety](docs/public-release-safety.md) before using them.
+Prior release downloads and tags were withdrawn during history sanitization. No
+replacement release or tag has been published. See the
+[history cleanup status](docs/history-sanitization.md) and
+[public-release safety](docs/public-release-safety.md).
 
 See [installation and backup/restore](docs/release-operations.md),
 [migration](docs/migration.md), and [the remaining 1.0 gates](docs/road-to-1.0.md).
