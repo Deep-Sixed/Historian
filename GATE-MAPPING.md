@@ -2,11 +2,11 @@
 
 | Guarantee | Real enforcement / tests |
 |---|---|
-| All 20 Persistence v1 invariants | Unchanged catalog/harness; 43 probes in tests/libsql_probe.py |
-| Ordinary caller bypass resistance | 124 supplemental probes in tests/test_libsql_profile.py |
-| Complete application outputs and gold lineage | tests/test_libsql_application.py |
-| Every domain type's denied readers/writers | Full real-UID matrix in tests/test_libsql_application.py |
-| Unsupported schema rejection, coherent backup/restore, upgrade | tests/test_libsql_storage.py |
+| All 20 Persistence v1 invariants | Unchanged catalog/harness; 43 probes in tests/sqlite_probe.py |
+| Ordinary caller bypass resistance | 124 supplemental probes in tests/test_sqlite_profile.py |
+| Complete application outputs and gold lineage | tests/test_sqlite_application.py |
+| Every domain type's denied readers/writers | Full real-UID matrix in tests/test_sqlite_application.py |
+| Unsupported schema rejection, coherent backup/restore, upgrade | tests/test_sqlite_storage.py |
 | Installed wheel independent of source checkout | scripts/ci-package.sh |
 | Behavioral B1–B8, structural gates, source verification | Core and Source Adapter test suites |
 

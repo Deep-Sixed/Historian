@@ -4,8 +4,8 @@ import json
 import os
 import sys
 
-from historian.libsql_store.client import request
-from historian.libsql_store.repository import connect
+from historian.sqlite_store.client import request
+from historian.sqlite_store.repository import connect
 
 payload = json.load(sys.stdin)
 result = {"uid": os.getuid()}

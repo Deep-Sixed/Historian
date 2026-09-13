@@ -1,11 +1,11 @@
 # Application persistence
 
-libSQL is Historian's only database. `historian.libsql_store.stores.Store` implements
+SQLite is Historian's only database. `historian.sqlite_store.stores.Store` implements
 ProposalStore, AssertionStore, ResolutionStore, SeedStore, PacketStore,
 AdjudicationStore and GoldStore. It is a socket client, not a database connection.
 Constructing one grants no authority. The service checks the real kernel UID against
-`historian/libsql_store/access.py` on every put/get; that exact matrix participates in
-the version 3 profile digest.
+`historian/sqlite_store/access.py` on every put/get; that exact matrix participates in
+the version 1 profile digest.
 
 `Store.put(value)` / `Store.get(type_name, id)` persist complete immutable domain objects.
 The wire codec only constructs a closed set of Historian dataclasses and enums. There

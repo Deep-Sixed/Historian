@@ -1,18 +1,18 @@
 import json
 
 from historian.cli import main
-from historian.libsql_store.profile import LIBSQL
+from historian.sqlite_store.profile import SQLITE
 
 
 def test_default_profile_is_exact_and_does_not_claim_deployment_conformance(capsys):
     assert main(["profile"]) == 0
     result = json.loads(capsys.readouterr().out)
-    assert result == {"backend": "libSQL", "profile": LIBSQL.name,
-                      "version": LIBSQL.version, "digest": LIBSQL.digest}
+    assert result == {"backend": "SQLite", "profile": SQLITE.name,
+                      "version": SQLITE.version, "digest": SQLITE.digest}
 
 
 def test_request_preserves_service_denial(tmp_path, monkeypatch, capsys):
-    from historian.libsql_store import client
+    from historian.sqlite_store import client
     path = tmp_path / "request.json"
     path.write_text('{"id":"q"}')
     calls = []

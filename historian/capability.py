@@ -7,7 +7,7 @@ Each component here is constructed with ONLY the stores it may reach. It cannot 
 forbidden store because it holds no reference to one — there is no method to call and no
 permission to misconfigure.
 
-IN DEPLOYMENT these run as distinct Linux UIDs through the libSQL service. The kernel
+IN DEPLOYMENT these run as distinct Linux UIDs through the SQLite service. The kernel
 peer identity selects a fixed capability; database constraints protect append-only data.
 This module is the in-process expression of that boundary, never a substitute for it:
 
@@ -95,7 +95,7 @@ class ExtractorWriter:
     Holds no assertion store, so it cannot create an AssertedRelation at all — not even
     one claiming `origin=HUMAN_BLIND_ADJUDICATION` with a fabricated adjudicator id. The
     enum guard blocks `origin="MODEL"`; this blocks the far more plausible attack of a
-    model process asserting through a legitimate-looking origin. In the libSQL service,
+    model process asserting through a legitimate-looking origin. In the SQLite service,
     `historian_extractor` simply has no INSERT grant on the assertion tables.
     """
 

@@ -9,7 +9,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="historian")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("profile", help="Show the default deployment profile identity")
-    serve = commands.add_parser("serve", help="Run the default libSQL service as UID 10000")
+    serve = commands.add_parser("serve", help="Run the default SQLite service as UID 10000")
     serve.add_argument("--database", default="/var/lib/historian/private/historian.db")
     serve.add_argument("--socket", default="/run/historian/historian.sock")
     serve.add_argument("--corpus", required=True)
@@ -24,9 +24,9 @@ def main(argv=None):
             admin.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "profile":
-        from historian.libsql_store.profile import LIBSQL
-        print(json.dumps({"backend": LIBSQL.backend_family, "profile": LIBSQL.name,
-                          "version": LIBSQL.version, "digest": LIBSQL.digest}))
+        from historian.sqlite_store.profile import SQLITE
+        print(json.dumps({"backend": SQLITE.backend_family, "profile": SQLITE.name,
+                          "version": SQLITE.version, "digest": SQLITE.digest}))
         return 0
     if sys.platform != "linux":
         parser.error("the default profile requires Linux SO_PEERCRED; no fallback backend")
@@ -34,9 +34,9 @@ def main(argv=None):
         import os
         if os.getuid() != 10000:
             parser.error("storage operations require service UID 10000")
-        from historian.libsql_store.operations import check, snapshot, storage_lock
+        from historian.sqlite_store.operations import check, snapshot, storage_lock
         if args.command == "upgrade":
-            from historian.libsql_store.repository import upgrade_schema
+            from historian.sqlite_store.repository import upgrade_schema
             with storage_lock(args.database):
                 upgrade_schema(args.database)
         elif args.command == "check":
@@ -47,10 +47,10 @@ def main(argv=None):
         print(json.dumps({"ok": True, "operation": args.command}))
         return 0
     if args.command == "serve":
-        from historian.libsql_store.service import serve as run_service
+        from historian.sqlite_store.service import serve as run_service
         run_service(args.database, args.socket, args.corpus)
         return 0
-    from historian.libsql_store.client import request as call
+    from historian.sqlite_store.client import request as call
     data = json.loads(args.data_file.read_text())
     if not isinstance(data, dict):
         parser.error("request data must be a JSON object")

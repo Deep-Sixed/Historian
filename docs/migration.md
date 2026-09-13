@@ -1,13 +1,37 @@
 # Migration and upgrade
 
-libSQL is the only supported database from v0.1.0a2 onward. There is no legacy server,
-driver, SQL dialect adapter, role provisioning, fallback or database-specific CI job.
-Historical implementations and evidence remain available in v0.1.0a1 and earlier tags.
+The current source uses Python's standard-library `sqlite3` as its only database driver.
+The Linux peer-credential service, capability UIDs, schema and socket operations are
+unchanged. Prior libSQL release downloads/tags were withdrawn during the history scrub;
+this change does not publish a replacement release or imply that an operator database
+has already migrated.
 
-## Existing libSQL installations
+## Existing local libSQL installations
 
-Version 3 adds complete application objects and their constrained dependency graph to
-the version 2 storage schema. Stop the service and callers. Back up with the old release,
+The previous service used an unencrypted local SQLite-format file. This implementation
+retains its exact schema and reads that format directly; it does not export/rewrite rows
+or fabricate provenance. Remote/synchronized/encrypted databases and unknown schemas
+are not supported migration inputs.
+
+1. Stop callers and the old service. Preserve a validated offline backup using the old
+   environment; a raw copy of the main file alone is insufficient when WAL is present.
+2. Retain the old environment for rollback. Install the new wheel into a separate
+   environment with no libSQL dependency, under the same isolated service account.
+3. Run `historian check --database PATH` against a protected copy first. The current
+   application schema needs no upgrade. Compare durable IDs, counts, locators,
+   coordinates, resolutions and lineage before directing callers to the new service.
+4. Start the service with the existing protected database/socket paths. Exercise the
+   declared SQLite profile on the actual host; old libSQL conformance does not transfer.
+5. Roll back by stopping the new service and restoring the preserved backup into a new
+   protected path with the old environment. Do not merge two independently written files.
+
+Python API clients must update imports from `historian.libsql_store` to
+`historian.sqlite_store`. The `historian` CLI commands and socket protocol are unchanged.
+
+## Older minimal schemas
+
+The application schema adds complete objects and their constrained dependency graph to
+the older minimal storage schema. Stop the service and callers. Back up with the old release,
 retain that release's wheel, then install the new release in a separate environment.
 As service UID 10000, run:
 

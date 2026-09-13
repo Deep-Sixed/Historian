@@ -5,8 +5,8 @@ its process's kernel UID; constructing a Store never grants a capability.
 """
 
 from types import SimpleNamespace
-from historian.libsql_store.client import request
-from historian.libsql_store.codec import encode, decode
+from historian.sqlite_store.client import request
+from historian.sqlite_store.codec import encode, decode
 from historian.source_adapter import (
     EvidenceLocator,
     SourceCoordinate,

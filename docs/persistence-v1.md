@@ -14,8 +14,9 @@ version and run ID. Normal, unauthorized-interface, direct/bypass and transactio
 exercise real enforcement. A service returning forbidden cannot prove a database constraint.
 Required properties count only when successfully demonstrated by the relevant probe.
 
-The only current implementation is [libSQL profile version 3](libsql-profile-v3.md).
-The earlier reference backend is retired; its evidence is retained with historical releases.
+The only current implementation is [SQLite profile version 1](sqlite-profile-v1.md).
+Earlier backends are retired. Historical release downloads were withdrawn during the
+history scrub; fresh SQLite evidence is required.
 The 20 invariants and 43 probes were not relaxed during backend retirement.
 
 | ID | Guarantee | Permitted boundaries | Required properties |
@@ -41,7 +42,7 @@ The 20 invariants and 43 probes were not relaxed during backend retirement.
 | PV19 | Verified evidence preserves the candidate locator and anchor it cites. | database | referential_integrity |
 | PV20 | Human adjudication attribution comes from the authenticated principal. | database, trusted_service | authenticated_identity |
 
-Run scripts/ci-libsql-profile.sh for the real Linux proof deployment. CI retains the
+Run scripts/ci-sqlite-profile.sh for the real Linux proof deployment. CI retains the
 43-probe report, 124 original supplemental boundary checks, and the application API
 capability matrix. Reports identify exact profile definitions independently of the test
 badge. Root, service UID/code compromise, compromised trusted verifier, kernel compromise,

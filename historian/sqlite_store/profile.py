@@ -1,13 +1,16 @@
 import json
-from historian.libsql_store.access import WRITE, READ
+import platform
+import sqlite3
+from historian.sqlite_store.access import WRITE, READ
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Boundary, PersistenceProfile, ThreatModel
 
-LIBSQL = PersistenceProfile(
-    name="libsql-linux-peercred-service-v1",
-    version=3,
-    backend_family="libSQL",
-    deployment_model="Linux local Unix socket service, Python 3.14.5, libsql Python 0.1.11; "
+SQLITE = PersistenceProfile(
+    name="sqlite-linux-peercred-service-v1",
+    version=1,
+    backend_family="SQLite",
+    deployment_model=f"Linux local Unix socket service, Python {platform.python_version()}, "
+    f"stdlib sqlite3, SQLite {sqlite3.sqlite_version}; "
     "service UID 10000; private 0700 database directory and 0755 socket directory; "
     "WAL with foreign_keys enabled; no remote database endpoint.",
     credential_access_model="SO_PEERCRED kernel UID; fixed UID 10001..10009 capability mapping; "

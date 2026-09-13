@@ -7,13 +7,12 @@ name = "historian"
 version = "0.1.0a2"
 description = "Provenance-first evidence qualification and question-bound adjudication"
 requires-python = ">=3.13"
-dependencies = ["libsql==0.1.11; sys_platform == 'linux'"]
+dependencies = []
 
 [project.scripts]
 historian = "historian.cli:main"
 
 [project.optional-dependencies]
-libsql = ["libsql==0.1.11"]
 dev = ["pytest>=8"]
 
 [tool.hatch.build.targets.wheel]
@@ -22,6 +21,6 @@ packages = ["historian"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "libsql: Linux peer-credential libSQL deployment tests; requires disposable container",
+    "sqlite: Linux peer-credential SQLite deployment tests; requires disposable container",
     "structural_gate: G-S1..G-S9 structural invariant enforcement",
 ]

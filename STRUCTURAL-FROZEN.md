@@ -1,5 +1,5 @@
 > Historical v0 design/closure record. Current installation and storage guidance is in
-> [RUNBOOK.md](RUNBOOK.md); the only supported database is libSQL.
+> [RUNBOOK.md](RUNBOOK.md); the only supported database is SQLite.
 
 # Historian structural layer — FROZEN 2026-08-22
 
