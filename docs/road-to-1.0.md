@@ -8,11 +8,14 @@ The first alpha supplies a tested library, low-level service CLI, installation g
 backup/restore, strict schema checks and retained conformance evidence. It is not a
 claim that a production host has been provisioned or that historical data has migrated.
 
-Before 1.0, establish evidence from actual use:
+First complete public-tree sanitization and the separately approved history/tag/release
+scrub described in [public-release safety](public-release-safety.md). Then establish
+evidence from actual use before 1.0:
 
 - Run a representative private source corpus through intake and adjudication. Confirm
   partial/malformed media failures are actionable and compare expected conclusions.
-  Hosted CI cannot exercise the private real-corpus canary.
+  Keep raw inputs and results outside Git; publish only reviewed aggregate evidence.
+  Hosted CI uses synthetic cases and does not satisfy this gate.
 - Measure ingestion time, memory and query latency at the intended archive size. The
   quadratic metadata reload is fixed by a deterministic load-count regression; that
   does not establish a production capacity number.
@@ -31,4 +34,4 @@ Use alpha releases for fixes and workflow feedback, beta when the supported work
 and upgrade contract are stable, and a release candidate after the above evidence is
 available. No arbitrary feature quota or date determines 1.0 readiness. Repository
 visibility, public licensing/security review, PyPI publication and production rollout
-are separate decisions; the initial GitHub pre-release stays private.
+are separate decisions. The repository is public; source fixtures must be synthetic.

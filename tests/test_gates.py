@@ -177,7 +177,7 @@ def test_gs2_model_review_of_assertion_is_unrepresentable():
 def test_gs4_reviewed_proposal_is_not_gold_eligible():
     a = AssertedRelation("A42", ev(), RelationType.AUGMENTS, ev("doc-b"), (ev(),),
                          AssertionOrigin.HUMAN_REVIEWED_PROPOSAL,
-                         human_adjudicator_id="redacted",
+                         human_adjudicator_id="reviewer-example",
                          derived_from_proposal_id="P17")
     assert a.gold_eligible is False
 
@@ -327,7 +327,7 @@ def test_gs8_review_creates_new_object_and_leaves_proposal_intact():
     p = proposal("P17")
     a = AssertedRelation("A42", p.subject_ref, p.relation_type, p.object_ref,
                          p.evidence_refs, AssertionOrigin.HUMAN_REVIEWED_PROPOSAL,
-                         human_adjudicator_id="redacted",
+                         human_adjudicator_id="reviewer-example",
                          derived_from_proposal_id=p.id)
     assert a.derived_from_proposal_id == p.id
     assert dataclasses.asdict(p) == dataclasses.asdict(proposal("P17"))  # untouched
@@ -338,7 +338,7 @@ def test_gs8_retraction_is_not_a_contradicts_relation():
     """Retraction is a lifecycle event, not a statement about evidence semantics."""
     r = AssertedRelationReview("REV1", "A42", ReviewOrigin.HUMAN,
                                AssertionReviewVerdict.RETRACTED, "withdrawn",
-                               reviewer_id="redacted")
+                               reviewer_id="reviewer-example")
     assert r.verdict is AssertionReviewVerdict.RETRACTED
     assert not isinstance(r, AssertedRelation)
     assert "RETRACTED" not in {t.name for t in RelationType}
@@ -355,7 +355,7 @@ def test_gs9_empty_suite_is_incomplete():
 
 def test_gs9_single_case_across_many_invariants_is_not_coverage():
     """One case defending four invariants is one case carrying four pieces of assurance."""
-    cases = [CaseCoverage("HIST-C3", "authority-trap",
+    cases = [CaseCoverage("SYN-coverage", "authority-trap",
                           ("B4_FALSE_ABSTENTION_IS_FAILURE", "B5_ROUTING_IS_INFERENTIAL",
                            "B7_NO_RECENCY_AS_AUTHORITY",
                            "B8_QUESTION_RELATIVE_AUTHORITY"))]

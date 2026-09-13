@@ -135,7 +135,7 @@ class EvidenceVerifier:
     VERIFICATION MEANS: this passage exists at this source, version and position, with
     these bytes. IT DOES NOT MEAN the passage is authoritative, complete, current or true.
     For the ledger specifically, confirming a claim exists says nothing about one that does
-    not - the documented recording gap makes absence uninformative.
+    not - an incomplete source makes absence uninformative.
     """
 
     def __init__(self, candidates, evidence, registry, verifier_id: str) -> None:

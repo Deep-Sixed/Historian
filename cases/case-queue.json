@@ -1,0 +1,210 @@
+[
+  {
+    "id": "SYN-1-B1",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does silence prove that local activity stopped?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B1_NO_RELATION_BY_ABSENCE"
+    ],
+    "exposes": "Inventing a relation from a missing entry."
+  },
+  {
+    "id": "SYN-1-B2",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does the later note explicitly correct the earlier observation?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B2_ORDER_IS_NOT_AUTHORITY"
+    ],
+    "exposes": "Promoting positional order to correction."
+  },
+  {
+    "id": "SYN-1-B3",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Can conflicting observations establish a single answer?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B3_UNRESOLVED_IS_VALID"
+    ],
+    "exposes": "Forcing a conclusion from unresolved disagreement."
+  },
+  {
+    "id": "SYN-1-B4",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: What does the explicit local decision establish?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B4_FALSE_ABSTENTION_IS_FAILURE"
+    ],
+    "exposes": "Abstaining despite an explicit authoritative decision."
+  },
+  {
+    "id": "SYN-1-B5",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Which frame is justified for this operating question?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B5_ROUTING_IS_INFERENTIAL"
+    ],
+    "exposes": "Treating an inferred route as caller supplied."
+  },
+  {
+    "id": "SYN-1-B6",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Can an undeclared frame answer the question?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B6_CLOSED_FRAME_SPACE"
+    ],
+    "exposes": "Inventing a frame outside the declared taxonomy."
+  },
+  {
+    "id": "SYN-1-B7",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Does the newer catalog override the local decision by date alone?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B7_NO_RECENCY_AS_AUTHORITY"
+    ],
+    "exposes": "Using recency alone to choose authority."
+  },
+  {
+    "id": "SYN-1-B8",
+    "family": "observatory",
+    "question": "In the fictional observatory scenario: Which source has authority for local operation?",
+    "evidence": [
+      "2030-01-01-synthetic-observatory",
+      "2030-02-01-synthetic-observatory"
+    ],
+    "defends": [
+      "B8_QUESTION_RELATIVE_AUTHORITY"
+    ],
+    "exposes": "Treating catalog authority as universal authority."
+  },
+  {
+    "id": "SYN-2-B1",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does silence prove that local activity stopped?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B1_NO_RELATION_BY_ABSENCE"
+    ],
+    "exposes": "Inventing a relation from a missing entry."
+  },
+  {
+    "id": "SYN-2-B2",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does the later note explicitly correct the earlier observation?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B2_ORDER_IS_NOT_AUTHORITY"
+    ],
+    "exposes": "Promoting positional order to correction."
+  },
+  {
+    "id": "SYN-2-B3",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Can conflicting observations establish a single answer?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B3_UNRESOLVED_IS_VALID"
+    ],
+    "exposes": "Forcing a conclusion from unresolved disagreement."
+  },
+  {
+    "id": "SYN-2-B4",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: What does the explicit local decision establish?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B4_FALSE_ABSTENTION_IS_FAILURE"
+    ],
+    "exposes": "Abstaining despite an explicit authoritative decision."
+  },
+  {
+    "id": "SYN-2-B5",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Which frame is justified for this operating question?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B5_ROUTING_IS_INFERENTIAL"
+    ],
+    "exposes": "Treating an inferred route as caller supplied."
+  },
+  {
+    "id": "SYN-2-B6",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Can an undeclared frame answer the question?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B6_CLOSED_FRAME_SPACE"
+    ],
+    "exposes": "Inventing a frame outside the declared taxonomy."
+  },
+  {
+    "id": "SYN-2-B7",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Does the newer catalog override the local decision by date alone?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B7_NO_RECENCY_AS_AUTHORITY"
+    ],
+    "exposes": "Using recency alone to choose authority."
+  },
+  {
+    "id": "SYN-2-B8",
+    "family": "recycling",
+    "question": "In the fictional recycling scenario: Which source has authority for local operation?",
+    "evidence": [
+      "2030-01-01-synthetic-recycling",
+      "2030-02-01-synthetic-recycling"
+    ],
+    "defends": [
+      "B8_QUESTION_RELATIVE_AUTHORITY"
+    ],
+    "exposes": "Treating catalog authority as universal authority."
+  }
+]
