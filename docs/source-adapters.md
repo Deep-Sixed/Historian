@@ -122,6 +122,7 @@ representation. Adapters may define coordinates such as `MESSAGE_PART`, `JSON_PO
 ```text
 SourceAdapter
 |-- TwitterExportAdapter
+|-- DreamingTurnsAdapter      (docs/dreaming-turns-adapter.md)
 |-- ChatGPTExportAdapter
 `-- GoogleTakeoutAdapter
     |-- Gmail
