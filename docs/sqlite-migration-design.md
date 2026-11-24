@@ -1,6 +1,7 @@
 # Design note: libSQL → stdlib SQLite (persistence profile v4)
 
-Status: implemented on `claude/sqlite-profile-v4`. Supersedes the direction of
+Status: implemented on `claude/sqlite-profile-v4`. Profile v4 digest
+`6d3dd7794d925751a0e9494c84c2d38c8b5616a40cb33217dd5236e74334a727`. Supersedes the direction of
 Deep-Sixed/historian#17, which stays open and unmerged.
 
 ## Goal

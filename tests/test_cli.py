@@ -1,14 +1,27 @@
 import json
 
 from historian.cli import main
-from historian.libsql_store.profile import LIBSQL
+from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE
 
 
 def test_default_profile_is_exact_and_does_not_claim_deployment_conformance(capsys):
     assert main(["profile"]) == 0
     result = json.loads(capsys.readouterr().out)
-    assert result == {"backend": "libSQL", "profile": LIBSQL.name,
-                      "version": LIBSQL.version, "digest": LIBSQL.digest}
+    runtime = result.pop("runtime")
+    certified = result.pop("runtime_is_certified")
+    assert result == {"backend": "SQLite", "profile": SQLITE.name,
+                      "version": 4, "digest": SQLITE.digest}
+    assert set(runtime) == {"python", "sqlite"}
+    assert certified == (runtime == CERTIFIED_RUNTIME)
+
+
+def test_migrate_requires_service_uid(tmp_path, monkeypatch):
+    import os
+    import pytest
+    monkeypatch.setattr(os, "getuid", lambda: 10001)
+    with pytest.raises(SystemExit):
+        main(["migrate", "--source", str(tmp_path / "a.db"),
+              "--destination", str(tmp_path / "b.db")])
 
 
 def test_request_preserves_service_denial(tmp_path, monkeypatch, capsys):

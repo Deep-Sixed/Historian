@@ -13,10 +13,9 @@ from uuid import uuid4
 
 import pytest
 
-pytest.importorskip("libsql")
 from libsql_probe import ROLES, LibSQLProbe, locator
 
-from historian.libsql_store.profile import LIBSQL
+from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE, running_runtime
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Access, ConformanceHarness, Status
 
@@ -80,9 +79,10 @@ def deployment():
             Path("/tmp/historian-libsql-boundaries.json").write_text(
                 json.dumps(
                     {
-                        "profile_name": LIBSQL.name,
-                        "profile_version": LIBSQL.version,
-                        "profile_digest": LIBSQL.digest,
+                        "profile_name": SQLITE.name,
+                        "profile_version": SQLITE.version,
+                        "profile_digest": SQLITE.digest,
+                        "runtime": running_runtime(),
                         "evidence": probe.boundary_evidence,
                     },
                     indent=2,
@@ -93,7 +93,7 @@ def deployment():
 
 def test_libsql_profile_conformance(deployment):
     probe, _, _ = deployment
-    report = ConformanceHarness(CATALOG).run(LIBSQL, probe)
+    report = ConformanceHarness(CATALOG).run(SQLITE, probe)
     destination = Path(
         os.environ.get(
             "HISTORIAN_LIBSQL_REPORT", "/tmp/historian-libsql-conformance.json"
@@ -101,7 +101,7 @@ def test_libsql_profile_conformance(deployment):
     )
     destination.write_text(
         json.dumps(
-            asdict(report),
+            {**asdict(report), "runtime": running_runtime()},
             indent=2,
             default=lambda v: v.value if isinstance(v, Enum) else str(v),
         )
@@ -119,7 +119,15 @@ def test_libsql_profile_conformance(deployment):
     assert failures == set()
     assert report.status is Status.CONFORMS
     assert len(report.evidence) == 43
-    assert all(e.profile_digest == LIBSQL.digest for e in report.evidence)
+    assert all(e.profile_digest == SQLITE.digest for e in report.evidence)
+
+
+def test_deployment_runs_the_certified_runtime(deployment):
+    """Evidence is bound to the runtime the v4 profile names; any other build fails."""
+    assert running_runtime() == CERTIFIED_RUNTIME, (
+        f"runtime {running_runtime()} is not the certified {CERTIFIED_RUNTIME}; "
+        "its evidence cannot be labelled with this profile digest"
+    )
 
 
 @pytest.mark.parametrize("uid", list(ROLES.values()) + [10099])
@@ -273,7 +281,7 @@ def test_assertion_origin_binding_is_enforced_by_database(deployment):
 )
 def test_pv17_unrelated_rejection_cannot_earn_conformance(error):
     invariant = next(i for i in CATALOG if i.id == "PV17")
-    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
+    profile = replace(SQLITE, claimed_invariant_coverage=("PV17",))
     probe = LibSQLProbe.__new__(LibSQLProbe)
 
     class RejectionProbe:
@@ -297,7 +305,7 @@ def test_pv17_unrelated_rejection_cannot_earn_conformance(error):
 def test_pv17_specific_constraint_rejection_earns_conformance(deployment):
     probe, _, _ = deployment
     invariant = next(i for i in CATALOG if i.id == "PV17")
-    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
+    profile = replace(SQLITE, claimed_invariant_coverage=("PV17",))
     result = ConformanceHarness((invariant,)).run(profile, probe)
     assert result.status is Status.CONFORMS
 

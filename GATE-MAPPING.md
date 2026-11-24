@@ -7,6 +7,9 @@
 | Complete application outputs and gold lineage | tests/test_libsql_application.py |
 | Every domain type's denied readers/writers | Full real-UID matrix in tests/test_libsql_application.py |
 | Unsupported schema rejection, coherent backup/restore, upgrade | tests/test_libsql_storage.py |
+| v3 → v4 migration: dry run, never in place, verified copy, refusals | tests/test_sqlite_migration.py |
+| Genuine libSQL 0.1.11 database migrated and carried back | scripts/ci-migration-compat.sh |
+| Evidence bound to the certified runtime | tests/test_libsql_profile.py, scripts/prepare-release.py |
 | Installed wheel independent of source checkout | scripts/ci-package.sh |
 | Behavioral B1–B8, structural gates, source verification | Core and Source Adapter test suites |
 

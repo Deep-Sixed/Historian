@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from historian.libsql_store.profile import LIBSQL
+from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE
 from historian.persistence.catalog import CATALOG
 
 
@@ -14,6 +14,8 @@ def validate(report, profile, failures):
     assert report['profile_version'] == profile.version
     assert report['profile_digest'] == profile.digest
     assert report['contract_version'] == '1'
+    # Evidence from any runtime other than the certified one cannot carry this digest.
+    assert report.get('runtime') == CERTIFIED_RUNTIME
     rows = report['evidence']
     assert len(rows) == len(expected) == 43
     assert {row['test_id'] for row in rows} == expected
@@ -35,24 +37,27 @@ def main():
     parser.add_argument('--workflow-run', required=True)
     args = parser.parse_args()
     root = args.directory
-    validate(json.loads((root/'historian-libsql-conformance.json').read_text()), LIBSQL, set())
+    validate(json.loads((root/'historian-libsql-conformance.json').read_text()), SQLITE, set())
     boundary = json.loads((root/'historian-libsql-boundaries.json').read_text())
-    assert boundary['profile_name'] == LIBSQL.name and boundary['profile_version'] == LIBSQL.version
-    assert boundary['profile_digest'] == LIBSQL.digest
+    assert boundary['profile_name'] == SQLITE.name and boundary['profile_version'] == SQLITE.version
+    assert boundary['profile_digest'] == SQLITE.digest
+    assert boundary.get('runtime') == CERTIFIED_RUNTIME
     assert len(boundary['evidence']) == 124
     assert all(row['expected'] == row['observed'] for row in boundary['evidence'])
     from historian.libsql_store.access import READ, WRITE
     roles = {"extractor","verifier","designer","typed","reviewer","runtime","builder","adjudicator","gold"}
     app = json.loads((root/'historian-libsql-application.json').read_text())
-    assert (app['profile_name'],app['profile_version'],app['profile_digest']) == (LIBSQL.name,LIBSQL.version,LIBSQL.digest)
+    assert (app['profile_name'],app['profile_version'],app['profile_digest']) == (SQLITE.name,SQLITE.version,SQLITE.digest)
+    assert app.get('runtime') == CERTIFIED_RUNTIME
     expected = {(op,kind,role) for op,mapping in [('get_object',READ),('put_object',WRITE),('get_packet_snapshot',{'AdjudicationPacket':READ['AdjudicationPacket']})]
                 for kind,allowed in mapping.items() for role in [*roles,'unassigned'] if role not in allowed}
     assert len(app['evidence']) == len(expected)
     assert {(e['operation'],e['kind'],e['capability']) for e in app['evidence']} == expected
     assert all(e['observed'] == e['expected'] == 'forbidden' for e in app['evidence'])
     manifest = {'commit': args.commit, 'workflow_run': args.workflow_run,
-                'libsql_profile': LIBSQL.name, 'profile_version': LIBSQL.version,
-                'profile_digest': LIBSQL.digest, 'status': 'CONFORMS'}
+                'persistence_profile': SQLITE.name, 'profile_version': SQLITE.version,
+                'profile_digest': SQLITE.digest, 'runtime': CERTIFIED_RUNTIME,
+                'status': 'CONFORMS'}
     (root/'release-manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
     paths = sorted(p for p in root.iterdir() if p.is_file() and p.name != 'SHA256SUMS')
     assert any(p.suffix == '.whl' for p in paths)

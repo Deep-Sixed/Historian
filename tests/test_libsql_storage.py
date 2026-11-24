@@ -1,7 +1,8 @@
-"""Local driver checks that do not substitute for deployed capability-boundary proof."""
+"""Local stdlib sqlite3 driver checks that do not substitute for deployed capability-boundary proof."""
+import sqlite3
+
 import pytest
 
-pytest.importorskip('libsql')
 from historian.libsql_store.repository import connect, initialize
 
 
@@ -11,7 +12,7 @@ def test_durable_identity_cannot_be_null_or_empty(tmp_path, identity):
     initialize(path)
     c = connect(path)
     try:
-        with pytest.raises(ValueError):
+        with pytest.raises(sqlite3.IntegrityError):
             c.execute('INSERT INTO question VALUES (?,?)', (identity, 'question'))
         assert c.execute('SELECT count(*) FROM question').fetchone() == (0,)
     finally:
@@ -31,7 +32,7 @@ def test_backup_restore_preserves_data_and_constraints(tmp_path):
     check(restored)
     c = connect(restored)
     assert c.execute('SELECT * FROM question').fetchall() == [('q', 'question')]
-    with pytest.raises(ValueError, match='immutable'):
+    with pytest.raises(sqlite3.IntegrityError, match='immutable'):
         c.execute("UPDATE question SET text='changed'")
     c.close()
     with pytest.raises(ValueError, match='already exists'):
@@ -76,6 +77,6 @@ def test_upgrade_alpha_schema_is_additive_and_preserves_immutability(tmp_path):
     c = connect(path)
     validate_schema(c)
     assert c.execute('SELECT * FROM question').fetchall() == [('old','retained')]
-    with pytest.raises(ValueError, match='immutable'):
+    with pytest.raises(sqlite3.IntegrityError, match='immutable'):
         c.execute("DELETE FROM question")
     c.close()
