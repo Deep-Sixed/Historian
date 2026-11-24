@@ -6,7 +6,6 @@ import json
 
 import pytest
 
-pytest.importorskip("libsql")
 from test_libsql_profile import deployment  # noqa: F401
 from historian import types as t
 from historian.adjudicator import Adjudicator, AuthorityPolicy
@@ -262,7 +261,7 @@ def test_every_domain_capability_rejects_unauthorized_uids(deployment):  # noqa:
     from pathlib import Path
     from libsql_probe import ROLES
     from historian.libsql_store.access import READ, WRITE
-    from historian.libsql_store.profile import LIBSQL
+    from historian.libsql_store.profile import SQLITE, running_runtime
 
     probe, _, _ = deployment
     observations = []
@@ -295,9 +294,10 @@ def test_every_domain_capability_rejects_unauthorized_uids(deployment):  # noqa:
     Path("/tmp/historian-libsql-application.json").write_text(
         json.dumps(
             {
-                "profile_name": LIBSQL.name,
-                "profile_version": LIBSQL.version,
-                "profile_digest": LIBSQL.digest,
+                "profile_name": SQLITE.name,
+                "profile_version": SQLITE.version,
+                "profile_digest": SQLITE.digest,
+                "runtime": running_runtime(),
                 "evidence": observations,
             },
             indent=2,

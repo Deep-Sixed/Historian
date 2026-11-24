@@ -1,13 +1,47 @@
+"""Declared deployment profile. Every field participates in the digest.
+
+Version 4 replaces the libSQL 0.1.11 driver of version 3 with the standard-library
+sqlite3 module. The certified runtime is a fixed constant, never read from the running
+interpreter, so the digest is identical on every machine; evidence must come from the
+runtime named here (the proof suite and release gate check this).
+"""
 import json
+import platform
+import sqlite3
+
 from historian.libsql_store.access import WRITE, READ
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Boundary, PersistenceProfile, ThreatModel
 
-LIBSQL = PersistenceProfile(
-    name="libsql-linux-peercred-service-v1",
-    version=3,
-    backend_family="libSQL",
-    deployment_model="Linux local Unix socket service, Python 3.14.5, libsql Python 0.1.11; "
+CERTIFIED_RUNTIME = {"python": "3.14.5", "sqlite": "3.46.1"}
+# Exact proof image (multi-arch index digest). deployment/libsql/Dockerfile must match.
+CERTIFIED_IMAGE = (
+    "python:3.14.5-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
+)
+
+# Superseded profile, retained so migration reports can name their source exactly.
+PREVIOUS_PROFILE = {
+    "name": "libsql-linux-peercred-service-v1",
+    "version": 3,
+    "digest": "ce6b23bed85d14c79e3e342b332f3979733f9a860820b57a630faede5d27124b",
+}
+
+
+def running_runtime():
+    return {"python": platform.python_version(), "sqlite": sqlite3.sqlite_version}
+
+
+def runtime_is_certified(runtime=None):
+    return (runtime or running_runtime()) == CERTIFIED_RUNTIME
+
+
+SQLITE = PersistenceProfile(
+    name="sqlite-linux-peercred-service-v1",
+    version=4,
+    backend_family="SQLite",
+    deployment_model="Linux local Unix socket service, Python "
+    f"{CERTIFIED_RUNTIME['python']}, standard-library sqlite3 linked to SQLite "
+    f"{CERTIFIED_RUNTIME['sqlite']} (image {CERTIFIED_IMAGE}); no third-party database driver; "
     "service UID 10000; private 0700 database directory and 0755 socket directory; "
     "WAL with foreign_keys enabled; no remote database endpoint.",
     credential_access_model="SO_PEERCRED kernel UID; fixed UID 10001..10009 capability mapping; "
