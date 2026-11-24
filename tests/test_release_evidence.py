@@ -2,7 +2,7 @@ import copy
 import runpy
 
 import pytest
-from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE
+from historian.libsql_store.profile import CERTIFIED_IMAGE, CERTIFIED_RUNTIME, SQLITE
 from historian.persistence.catalog import CATALOG
 
 validate = runpy.run_path('scripts/prepare-release.py')['validate']
@@ -42,3 +42,10 @@ def test_release_gate_rejects_incomplete_or_misbound_evidence(change):
         data['missing_properties'] = [['PV17', ['authenticated_identity']]]
     with pytest.raises(AssertionError):
         validate(data, SQLITE, set())
+
+
+def test_proof_image_is_pinned_to_the_certified_digest():
+    from pathlib import Path
+    lines = Path('deployment/libsql/Dockerfile').read_text().splitlines()
+    assert [line for line in lines if line.startswith('FROM ')] == [f'FROM {CERTIFIED_IMAGE}']
+    assert '@sha256:' in CERTIFIED_IMAGE and CERTIFIED_IMAGE in SQLITE.deployment_model

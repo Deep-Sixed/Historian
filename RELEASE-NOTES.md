@@ -5,9 +5,10 @@ now has no runtime dependencies. One service process still owns the database, an
 operation is still authorised by the caller's kernel UID. The schema, socket protocol
 (including error names), capability matrix and Persistence v1 catalog are unchanged.
 
-- New profile `sqlite-linux-peercred-service-v1` version 4 (digest `6d3dd779…a727`).
+- New profile `sqlite-linux-peercred-service-v1` version 4 (digest `ac319a88…38f1`).
   It supersedes libSQL v3, whose record and digest are unchanged. The certified
-  runtime (Python 3.14.5, SQLite 3.46.1) is fixed in the profile. Evidence from any
+  runtime (Python 3.14.5, SQLite 3.46.1) and the proof image, pinned by digest, are fixed
+  in the profile. Evidence from any
   other runtime is rejected by the release gate.
 - `historian migrate --source OLD --destination NEW [--apply]` moves a stopped v3
   database to a new file. It is a dry run unless `--apply` is given, and it never

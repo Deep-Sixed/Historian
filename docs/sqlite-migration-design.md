@@ -1,7 +1,7 @@
 # Design note: libSQL → stdlib SQLite (persistence profile v4)
 
 Status: implemented on `claude/sqlite-profile-v4`. Profile v4 digest
-`6d3dd7794d925751a0e9494c84c2d38c8b5616a40cb33217dd5236e74334a727`. Supersedes the direction of
+`ac319a88ff754bcaced495018df295d9b12a12a069ee94b361de376386e338f1`. Supersedes the direction of
 Deep-Sixed/historian#17, which stays open and unmerged.
 
 ## Goal
@@ -110,8 +110,9 @@ The two drivers differ in three ways:
   `…-service-v1` at version 3). The version number continues the v3 lineage.
 - `backend_family="SQLite"`. `deployment_model` names a **fixed certified runtime**:
   Python 3.14.5 and stdlib `sqlite3` linked to SQLite 3.46.1, as shipped in
-  `python:3.14.5-slim`. These are string constants, so the digest is the same on
-  every machine. `CERTIFIED_RUNTIME` is exported for the checks below.
+  `python:3.14.5-slim`, pinned by digest. These are string constants, so the digest
+  is the same on every machine. `CERTIFIED_RUNTIME` and `CERTIFIED_IMAGE` are
+  exported for the checks below.
 - Every other field, including the threat model and the `access.py` matrix, is
   carried over unchanged. The digest changes because the backend and deployment
   fields changed.
@@ -226,10 +227,12 @@ section), `GATE-MAPPING.md`, and the three frozen-doc banners.
 
 ## Risks and open questions
 
-- **The certified SQLite version comes from the base image.** A rebuilt
-  `python:3.14.5-slim` with a different `libsqlite3` fails the runtime assertion
-  closed instead of silently producing evidence. Pinning the base image by digest
-  would make this reproducible. That is left as an owner decision.
+- **The certified SQLite version comes from the base image.** Resolved: the owner
+  chose to pin it. The proof image is `python:3.14.5-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97`,
+  the image that produced the first CONFORMS run on SQLite 3.46.1. It is named in the
+  profile, so the digest covers it, and a core test keeps the Dockerfile equal to it.
+  Security updates to the base image now need a deliberate digest bump and a new
+  profile version. The runtime assertion remains as a second guard.
 - **The package name is still libSQL.** Until the follow-up rename,
   `historian.libsql_store` holds the SQLite backend. This is deliberate, to keep
   this diff reviewable and the API stable.

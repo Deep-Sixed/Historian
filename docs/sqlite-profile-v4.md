@@ -1,11 +1,12 @@
 # sqlite-linux-peercred-service-v1 / version 4
 
 Backend: SQLite through Python's standard-library `sqlite3`; no third-party database
-driver. Certified runtime: Python 3.14.5 linked to SQLite 3.46.1, as shipped in
-`python:3.14.5-slim`. Contract: Persistence v1 unchanged.
-Profile digest: `6d3dd7794d925751a0e9494c84c2d38c8b5616a40cb33217dd5236e74334a727`.
+driver. Certified runtime: Python 3.14.5 linked to SQLite 3.46.1, as shipped in the
+proof image `python:3.14.5-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97`.
+Contract: Persistence v1 unchanged.
+Profile digest: `ac319a88ff754bcaced495018df295d9b12a12a069ee94b361de376386e338f1`.
 
-Linux local Unix socket service, Python 3.14.5, standard-library sqlite3 linked to SQLite 3.46.1 (python:3.14.5-slim); no third-party database driver; service UID 10000; private 0700 database directory and 0755 socket directory; WAL with foreign_keys enabled; no remote database endpoint.
+Linux local Unix socket service, Python 3.14.5, standard-library sqlite3 linked to SQLite 3.46.1 (image python:3.14.5-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97); no third-party database driver; service UID 10000; private 0700 database directory and 0755 socket directory; WAL with foreign_keys enabled; no remote database endpoint.
 
 Version 4 supersedes [libSQL profile version 3](libsql-profile-v3.md). It changes only
 the backend family and the deployment model. These are unchanged:
@@ -38,10 +39,14 @@ interpreter, so the digest is the same on every machine (`CERTIFIED_RUNTIME` in
 - Every evidence report records the runtime it ran on.
 - `scripts/prepare-release.py` rejects evidence from any other runtime.
 - `historian profile` prints the running runtime and `runtime_is_certified`.
+- The proof image is pinned by digest, both in `deployment/libsql/Dockerfile` and in the
+  profile (`CERTIFIED_IMAGE`). A core test fails if the two differ.
 - The service refuses to start on SQLite older than 3.38.0, the first release with
   built-in JSON functions, which the schema needs.
 
-A different runtime needs a new profile version and fresh evidence.
+A different runtime or base image needs a new profile version and fresh evidence.
+Updating the base image therefore means changing the pinned digest, re-running the
+proof, and bumping the profile version.
 
 ## Constraint signals
 
