@@ -4,7 +4,7 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 
-from historian.libsql_store.repository import connect, validate_schema
+from historian.sqlite_store.repository import connect, validate_schema
 
 
 def private_parent(path):

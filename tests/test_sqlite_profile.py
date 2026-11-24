@@ -13,26 +13,25 @@ from uuid import uuid4
 
 import pytest
 
-pytest.importorskip("libsql")
-from libsql_probe import ROLES, LibSQLProbe, locator
+from sqlite_probe import ROLES, SQLiteProbe, locator
 
-from historian.libsql_store.profile import LIBSQL
+from historian.sqlite_store.profile import CERTIFIED_RUNTIME, SQLITE, running_runtime
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Access, ConformanceHarness, Status
 
-pytestmark = pytest.mark.libsql
+pytestmark = pytest.mark.deployment
 
 
 @pytest.fixture(scope="module")
 def deployment():
-    if os.environ.get("HISTORIAN_RUN_LIBSQL") != "1":
+    if os.environ.get("HISTORIAN_RUN_DEPLOYMENT") != "1":
         pytest.skip(
-            "requires disposable Linux profile deployment; see deployment/libsql/Dockerfile"
+            "requires disposable Linux profile deployment; see deployment/sqlite/Dockerfile"
         )
     assert sys.platform == "linux" and os.getuid() == 0, (
         "run in disposable profile container as root"
     )
-    root = Path(tempfile.mkdtemp(prefix="historian-libsql-", dir="/tmp"))
+    root = Path(tempfile.mkdtemp(prefix="historian-sqlite-", dir="/tmp"))
     root.chmod(0o755)
     private, public, corpus = (root / name for name in ("private", "socket", "corpus"))
     for directory in (private, public, corpus):
@@ -47,7 +46,7 @@ def deployment():
             [
                 sys.executable,
                 "-m",
-                "historian.libsql_store.service",
+                "historian.sqlite_store.service",
                 "--database",
                 str(database),
                 "--socket",
@@ -69,7 +68,7 @@ def deployment():
         raise AssertionError("service startup timed out")
 
     process = start()
-    probe = LibSQLProbe(database, socket, corpus)
+    probe = SQLiteProbe(database, socket, corpus)
     probe.boundary_evidence = []
     try:
         yield probe, process, start
@@ -77,12 +76,13 @@ def deployment():
         process.terminate()
         process.wait(timeout=10)
         if probe.boundary_evidence:
-            Path("/tmp/historian-libsql-boundaries.json").write_text(
+            Path("/tmp/historian-sqlite-boundaries.json").write_text(
                 json.dumps(
                     {
-                        "profile_name": LIBSQL.name,
-                        "profile_version": LIBSQL.version,
-                        "profile_digest": LIBSQL.digest,
+                        "profile_name": SQLITE.name,
+                        "profile_version": SQLITE.version,
+                        "profile_digest": SQLITE.digest,
+                        "runtime": running_runtime(),
                         "evidence": probe.boundary_evidence,
                     },
                     indent=2,
@@ -91,17 +91,17 @@ def deployment():
 
 
 
-def test_libsql_profile_conformance(deployment):
+def test_sqlite_profile_conformance(deployment):
     probe, _, _ = deployment
-    report = ConformanceHarness(CATALOG).run(LIBSQL, probe)
+    report = ConformanceHarness(CATALOG).run(SQLITE, probe)
     destination = Path(
         os.environ.get(
-            "HISTORIAN_LIBSQL_REPORT", "/tmp/historian-libsql-conformance.json"
+            "HISTORIAN_SQLITE_REPORT", "/tmp/historian-sqlite-conformance.json"
         )
     )
     destination.write_text(
         json.dumps(
-            asdict(report),
+            {**asdict(report), "runtime": running_runtime()},
             indent=2,
             default=lambda v: v.value if isinstance(v, Enum) else str(v),
         )
@@ -119,7 +119,15 @@ def test_libsql_profile_conformance(deployment):
     assert failures == set()
     assert report.status is Status.CONFORMS
     assert len(report.evidence) == 43
-    assert all(e.profile_digest == LIBSQL.digest for e in report.evidence)
+    assert all(e.profile_digest == SQLITE.digest for e in report.evidence)
+
+
+def test_deployment_runs_the_certified_runtime(deployment):
+    """Evidence is bound to the runtime the v4 profile names; any other build fails."""
+    assert running_runtime() == CERTIFIED_RUNTIME, (
+        f"runtime {running_runtime()} is not the certified {CERTIFIED_RUNTIME}; "
+        "its evidence cannot be labelled with this profile digest"
+    )
 
 
 @pytest.mark.parametrize("uid", list(ROLES.values()) + [10099])
@@ -165,7 +173,7 @@ def test_real_callers_cannot_access_or_mutate_storage_or_assume_service_uid(
         {
             "actor": f"uid:{uid}",
             "access": "direct_bypass",
-            "operation": "raw_libsql_delete",
+            "operation": "raw_sqlite_delete",
             "expected": "cannot open database",
             "observed": "cannot open database"
             if not result["ok"] and "open" in result.get("detail", "").lower()
@@ -208,7 +216,7 @@ def test_raw_socket_has_no_sql_role_switch_or_finalizer_escape(deployment, role)
 def test_second_service_cannot_replace_live_socket(deployment):
     probe, _, _ = deployment
     result = subprocess.run(
-        [sys.executable, "-m", "historian.libsql_store.service",
+        [sys.executable, "-m", "historian.sqlite_store.service",
          "--database", str(probe.database), "--socket", str(probe.socket),
          "--corpus", str(probe.corpus)],
         user=10000, group=10000, extra_groups=[], capture_output=True, timeout=10,
@@ -273,8 +281,8 @@ def test_assertion_origin_binding_is_enforced_by_database(deployment):
 )
 def test_pv17_unrelated_rejection_cannot_earn_conformance(error):
     invariant = next(i for i in CATALOG if i.id == "PV17")
-    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
-    probe = LibSQLProbe.__new__(LibSQLProbe)
+    profile = replace(SQLITE, claimed_invariant_coverage=("PV17",))
+    probe = SQLiteProbe.__new__(SQLiteProbe)
 
     class RejectionProbe:
         def execute(self, test):
@@ -297,7 +305,7 @@ def test_pv17_unrelated_rejection_cannot_earn_conformance(error):
 def test_pv17_specific_constraint_rejection_earns_conformance(deployment):
     probe, _, _ = deployment
     invariant = next(i for i in CATALOG if i.id == "PV17")
-    profile = replace(LIBSQL, claimed_invariant_coverage=("PV17",))
+    profile = replace(SQLITE, claimed_invariant_coverage=("PV17",))
     result = ConformanceHarness((invariant,)).run(profile, probe)
     assert result.status is Status.CONFORMS
 

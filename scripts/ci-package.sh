@@ -10,13 +10,17 @@ release_version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.
 cd "$package_env"
 "$package_env/venv/bin/historian" profile
 "$package_env/venv/bin/python" - <<'PY'
+import importlib.util
 import tempfile
-from importlib.metadata import version
+from importlib.metadata import requires, version
 import historian
+# Profile v4 uses only the standard library; no third-party driver may be installed.
+assert importlib.util.find_spec("libsql") is None
+assert not requires("historian") or all("libsql" not in r for r in requires("historian"))
 assert version("historian") == historian.__version__
 from pathlib import Path
-from historian.libsql_store.repository import initialize, connect
-from historian.libsql_store.operations import snapshot, check
+from historian.sqlite_store.repository import initialize, connect
+from historian.sqlite_store.operations import snapshot, check
 with tempfile.TemporaryDirectory() as root:
     source, backup = Path(root)/'source.db', Path(root)/'backup.db'
     initialize(source)

@@ -1,5 +1,5 @@
 [Unit]
-Description=Historian libSQL peer-credential service
+Description=Historian SQLite peer-credential service (profile v4)
 After=local-fs.target
 
 [Service]

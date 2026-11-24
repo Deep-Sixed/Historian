@@ -1,8 +1,10 @@
 # Pre-1.0 installation and operations
 
-Supported persistence deployment: Linux, Python 3.14.5, libSQL 0.1.11, local disk,
-fixed service UID 10000 and capability UIDs 10001–10009. See the complete
-[profile and threat model](libsql-profile-v3.md). Python 3.13 is a tested fallback;
+Supported persistence deployment: Linux, Python 3.14.5 with standard-library sqlite3
+(certified against SQLite 3.46.1), local disk, fixed service UID 10000 and capability
+UIDs 10001–10009. No third-party database driver is installed. See the complete
+[profile and threat model](sqlite-profile-v4.md). `historian profile` reports whether
+the running Python and SQLite match the certified runtime. Python 3.13 is a tested fallback;
 non-Linux installations can use the pure adjudication library but cannot run the service.
 
 ## Install
@@ -49,7 +51,7 @@ historian check --database /protected/restore/historian.db
 ```
 
 Both source and destination directories must be owner-private. Backup and restore use
-libSQL `VACUUM INTO` for a coherent snapshot, check exact schema, integrity and foreign
+SQLite `VACUUM INTO` for a coherent snapshot, check exact schema, integrity and foreign
 keys, fsync the output, and refuse an existing destination. They take the same exclusive
 lock as the service. They are operator commands, never socket capabilities. Retain the
 original source archives separately: database backups cannot replace evidence sources.
@@ -66,7 +68,8 @@ Keep the previous wheel, validated backup and release evidence. Stop the service
 back up, install the new wheel in a separate environment, and run `historian check`.
 Startup rejects any schema differing from this release's schema, including missing
 immutability triggers. The reviewed PR #8 schema requires the explicit additive upgrade before startup; older
-experimental schemas are not silently converted. See [migration](migration.md).
+experimental schemas are not silently converted. Moving from libSQL (profile v3) to
+SQLite (profile v4) uses `historian migrate`; see [migration](migration.md).
 
 Switch the unit to the new environment and start it. Verify an authorized request,
 an unauthorized rejection, and existing records from the appropriate capability UID.
@@ -75,10 +78,10 @@ the prior wheel. Test this process on representative data before a production ro
 
 ## Release gate
 
-Each release must pass core, Source Adapter, application and libSQL suites and an
-installed-wheel smoke test. Preserve the profile report, supplemental boundary evidence,
-commit SHA, wheel/sdist, and checksums. libSQL v3 must pass all 43 probes and 124 boundary
-checks plus the domain capability matrix. No retired database runs in CI.
+Each release must pass core, Source Adapter, application, SQLite profile and v3 → v4
+migration-compatibility suites and an installed-wheel smoke test. Preserve the profile report, supplemental boundary evidence,
+commit SHA, wheel/sdist, and checksums. SQLite v4 must pass all 43 probes and 124 boundary
+checks plus the domain capability matrix, on the certified runtime recorded in each report. No retired database runs in CI.
 Hosted CI uses synthetic evidence and does not establish real-corpus readiness.
 Pre-releases remain explicitly pre-release. See public-release-safety.md for the
 separate historical source and release-artifact scrub.

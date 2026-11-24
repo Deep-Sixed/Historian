@@ -9,12 +9,13 @@ import json
 import os
 import socket
 import socketserver
+import sqlite3
 import struct
 import stat
 from pathlib import Path
 
-from historian.libsql_store.repository import Repository, canonical, initialize, transaction
-from historian.libsql_store.operations import storage_lock
+from historian.sqlite_store.repository import Repository, canonical, initialize, transaction
+from historian.sqlite_store.operations import storage_lock
 from historian.persistence.locator import locator_from_record, locator_to_record
 from historian.source_adapter import (
     CoordinatePart,
@@ -61,7 +62,7 @@ MAX_REQUEST = 1024 * 1024
 
 def dispatch(repository, operation, data, role, principal, corpus):
     if operation in {"put_object", "get_object", "get_packet_snapshot"}:
-        from historian.libsql_store.domain import dispatch as domain_dispatch
+        from historian.sqlite_store.domain import dispatch as domain_dispatch
         return domain_dispatch(repository,operation,data,role,principal,corpus)
     if role not in ALLOWED.get(operation, set()):
         raise PermissionError("capability denied")
@@ -174,6 +175,32 @@ def dispatch(repository, operation, data, role, principal, corpus):
     return data["id"]
 
 
+PV17_MESSAGE = "CHECK constraint failed: assertion_origin_binding"
+MINIMUM_SQLITE = (3, 38, 0)  # built-in JSON functions used by the schema
+
+
+def wire_error(exc):
+    """Sanitized error name; the wire protocol is unchanged from profile v3.
+
+    Only the exact named CHECK failure, with SQLite's CHECK error code, earns the
+    assertion_origin_binding signal. Every other constraint failure is reported as
+    ValueError, the class libSQL 0.1.11 used for all of them, so clients see no change
+    and no extra detail.
+    """
+    if type(exc) is sqlite3.IntegrityError:
+        if (getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_CONSTRAINT_CHECK
+                and str(exc) == PV17_MESSAGE):
+            return "assertion_origin_binding"
+        return "ValueError"
+    return type(exc).__name__
+
+
+def require_supported_runtime(version=None):
+    found = tuple(int(part) for part in (version or sqlite3.sqlite_version).split("."))
+    if found < MINIMUM_SQLITE:
+        raise RuntimeError("SQLite library is older than the profile's minimum (3.38.0)")
+
+
 class Handler(socketserver.StreamRequestHandler):
     def handle(self):
         self.request.settimeout(10)
@@ -204,14 +231,7 @@ class Handler(socketserver.StreamRequestHandler):
             response = {"ok": False, "error": "forbidden"}
         except Exception as exc:  # noqa: BLE001 - sanitize errors at the process boundary
             # No SQL payloads, sources, paths or secrets in remote error responses.
-            error = type(exc).__name__
-            # libsql 0.1.11 exposes constraint violations as ValueError. Match the
-            # entire named-CHECK signature; unrelated storage failures prove nothing.
-            if type(exc) is ValueError and str(exc) == (
-                "CHECK constraint failed: assertion_origin_binding"
-            ):
-                error = "assertion_origin_binding"
-            response = {"ok": False, "error": error}
+            response = {"ok": False, "error": wire_error(exc)}
         finally:
             if repository is not None:
                 repository.close()
@@ -222,6 +242,7 @@ class Handler(socketserver.StreamRequestHandler):
 def serve(database, socket_path, corpus):
     if os.getuid() != SERVICE_UID:
         raise RuntimeError("profile requires service UID 10000")
+    require_supported_runtime()
     parent = Path(database).parent
     if parent.stat().st_uid != SERVICE_UID or parent.stat().st_mode & 0o077:
         raise RuntimeError("database directory must be service-owned and private")

@@ -1,5 +1,9 @@
 # libsql-linux-peercred-service-v1 / version 3
 
+> **Superseded by [SQLite profile version 4](sqlite-profile-v4.md).** This record and its
+> digest are kept unchanged for audit and for naming the source of a
+> [v3 → v4 migration](migration.md). v3 evidence does not prove v4.
+
 Backend: libSQL 0.1.11. Python: 3.14.5. Contract: Persistence v1 unchanged.
 Profile digest: `ce6b23bed85d14c79e3e342b332f3979733f9a860820b57a630faede5d27124b`.
 

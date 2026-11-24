@@ -10,7 +10,7 @@ from pathlib import Path
 
 from historian.capability import PacketBuilder
 from historian.gold import GoldCaseSeed
-from historian.libsql_store.stores import Store
+from historian.sqlite_store.stores import Store
 from historian.persistence.locator import locator_to_record
 from historian.source_adapter import (
     EvidenceLocator,

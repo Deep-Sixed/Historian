@@ -12,7 +12,7 @@ from historian.persistence.contract import (
     Status,
 )
 from historian.persistence.locator import locator_from_record, locator_to_record
-from historian.libsql_store.profile import LIBSQL as PROFILE
+from historian.sqlite_store.profile import SQLITE as PROFILE
 from historian.source_adapter import (
     CoordinatePart,
     EvidenceLocator,

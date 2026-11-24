@@ -87,7 +87,7 @@ The old evidence model used a closed source and line-span shape. New adapters th
 truthfully feed `EvidenceRef` by mapping every external source to `OTHER`; that would
 destroy source-system isolation.
 
-The libSQL evidence table persists EvidenceLocator directly, including open-ended source
+The SQLite evidence table persists EvidenceLocator directly, including open-ended source
 identity and canonical structured coordinates. The older in-memory EvidenceRef model
 remains LINE-based; its bridge rejects unsupported coordinates instead of relabeling them.
 Adapter intake does not collapse arbitrary systems into OTHER.

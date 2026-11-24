@@ -1,4 +1,4 @@
-"""Profile probes through real kernel identities and durable libSQL storage."""
+"""Profile probes through real kernel identities and durable SQLite storage."""
 
 import hashlib
 import json
@@ -7,9 +7,9 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
-import libsql
+import sqlite3
 
-from historian.libsql_store.repository import canonical
+from historian.sqlite_store.repository import canonical
 from historian.persistence.contract import Access, Boundary, Observation
 
 ROLES = {
@@ -41,7 +41,7 @@ def locator(
     }
 
 
-class LibSQLProbe:
+class SQLiteProbe:
     def __init__(self, database, socket_path, corpus):
         self.database, self.socket, self.corpus = (
             str(database),
@@ -52,7 +52,7 @@ class LibSQLProbe:
 
     def worker(self, uid, payload):
         result = subprocess.run(
-            [sys.executable, str(Path(__file__).with_name("libsql_process.py"))],
+            [sys.executable, str(Path(__file__).with_name("sqlite_process.py"))],
             input=json.dumps(payload),
             text=True,
             capture_output=True,
@@ -105,7 +105,7 @@ class LibSQLProbe:
         return Observation(
             self.accepted(result),
             Boundary.DATABASE,
-            "Raw libSQL SQL under service UID; no service validation on this path",
+            "Raw SQLite SQL under service UID; no service validation on this path",
             access,
             "uid:10000",
             "trusted storage owner (constraint probe)",
@@ -129,7 +129,7 @@ class LibSQLProbe:
         return Observation(
             self.accepted(result),
             Boundary.DATABASE,
-            "SO_PEERCRED-derived assertion context persisted through service; libSQL constraint enforces origin compatibility",
+            "SO_PEERCRED-derived assertion context persisted through service; SQLite constraint enforces origin compatibility",
             access,
             result["principal"],
             result["capability"],
@@ -522,7 +522,7 @@ class LibSQLProbe:
     def transaction_probe(self, scenario):
         # Trusted storage connection owns the transaction; a separate actor process observes it.
         # This test runs as provisioning root, never exposes a connection to an ordinary caller.
-        from historian.libsql_store.repository import connect
+        from historian.sqlite_store.repository import connect
 
         c = connect(self.database)
         try:
@@ -546,7 +546,7 @@ class LibSQLProbe:
                         "INSERT INTO resolution_evidence VALUES (?,?)",
                         (self.rid, "missing"),
                     )
-                except (libsql.Error, ValueError) as exc:
+                except sqlite3.IntegrityError as exc:
                     assert "FOREIGN KEY" in str(exc)
                     c.rollback()
                 else:
@@ -578,7 +578,7 @@ class LibSQLProbe:
         return Observation(
             observed,
             Boundary.DATABASE,
-            "Real libSQL transaction with separate process observer",
+            "Real SQLite transaction with separate process observer",
             Access.TRANSACTION,
             "uid:0 (trusted provisioning probe)",
             "storage-owner constraint probe",

@@ -1,3 +1,36 @@
+# Unreleased — SQLite profile v4
+
+The libSQL 0.1.11 driver is replaced by Python's standard-library `sqlite3`. The package
+now has no runtime dependencies. One service process still owns the database, and every
+operation is still authorised by the caller's kernel UID. The schema, socket protocol
+(including error names), capability matrix and Persistence v1 catalog are unchanged.
+
+- New profile `sqlite-linux-peercred-service-v1` version 4 (digest `ac319a88…38f1`).
+  It supersedes libSQL v3, whose record and digest are unchanged. The certified
+  runtime (Python 3.14.5, SQLite 3.46.1) and the proof image, pinned by digest, are fixed
+  in the profile. Evidence from any
+  other runtime is rejected by the release gate.
+- `historian migrate --source OLD --destination NEW [--apply]` moves a stopped v3
+  database to a new file. It is a dry run unless `--apply` is given, and it never
+  writes the source. It verifies the exact schema, integrity, foreign keys, and
+  per-table row counts and content digests. See docs/migration.md.
+- `historian profile` also reports the running runtime and whether it is certified.
+- **Python API rename:** the package `historian.libsql_store` is now
+  `historian.sqlite_store`, with the same submodules. The profile object is now
+  `SQLITE` instead of `LIBSQL`. There is no compatibility alias: old imports fail
+  rather than silently getting v4. The CLI and socket operations are unchanged.
+- Test, script and evidence names follow the rename:
+  - `tests/test_sqlite_*.py` and `scripts/ci-sqlite-profile.sh`;
+  - `deployment/sqlite/`;
+  - the `historian-sqlite-*.json` evidence files;
+  - the pytest marker `deployment` and the `HISTORIAN_RUN_DEPLOYMENT` switch.
+  `scripts/prepare-release.py` reads the new evidence file names.
+- CI runners are pinned to `ubuntu-24.04`. A new job migrates a genuine libSQL 0.1.11
+  database and carries it back.
+
+No release or tag is created. The GitHub cleanup gate in docs/history-sanitization.md
+still applies.
+
 # Historian v0.1.0a2 — libSQL only
 
 libSQL is now the only database in the supported source tree, install dependencies,
