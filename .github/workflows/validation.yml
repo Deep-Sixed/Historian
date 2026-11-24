@@ -42,24 +42,24 @@ jobs:
       - name: Lint Persistence v1 additions
         run: |
           python -m pip install ruff
-          ruff check --isolated --select E4,E7,E9,F historian/persistence tests/test_persistence_contract.py historian/libsql_store tests/libsql_probe.py tests/libsql_process.py tests/test_libsql_profile.py tests/test_libsql_storage.py tests/test_libsql_application.py tests/test_sqlite_migration.py tests/migration_fixture.py
+          ruff check --isolated --select E4,E7,E9,F historian/persistence tests/test_persistence_contract.py historian/sqlite_store tests/sqlite_probe.py tests/sqlite_process.py tests/test_sqlite_profile.py tests/test_sqlite_storage.py tests/test_sqlite_application.py tests/test_sqlite_migration.py tests/migration_fixture.py
       - name: Run core/static gate
         run: python -m pytest -q
 
-  libsql:
+  sqlite-profile:
     name: SQLite Linux peer-credential profile (v4)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Build and test isolated SQLite profile v4
-        run: scripts/ci-libsql-profile.sh
+        run: scripts/ci-sqlite-profile.sh
       - name: Publish exact profile result
         if: always()
         run: |
           python3 - <<'PYCODE'
           import json, os
           from pathlib import Path
-          path = Path('/tmp/historian-libsql-artifacts/historian-libsql-conformance.json')
+          path = Path('/tmp/historian-sqlite-artifacts/historian-sqlite-conformance.json')
           if path.exists():
               report = json.loads(path.read_text())
               message = (f"{report['profile_name']} v{report['profile_version']} "
@@ -75,7 +75,7 @@ jobs:
         if: always()
         with:
           name: persistence-v1-sqlite-v4-evidence
-          path: /tmp/historian-libsql-artifacts/*.json
+          path: /tmp/historian-sqlite-artifacts/*.json
           if-no-files-found: warn
 
   migration:

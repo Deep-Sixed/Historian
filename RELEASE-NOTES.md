@@ -15,9 +15,16 @@ operation is still authorised by the caller's kernel UID. The schema, socket pro
   writes the source. It verifies the exact schema, integrity, foreign keys, and
   per-table row counts and content digests. See docs/migration.md.
 - `historian profile` also reports the running runtime and whether it is certified.
-- The Python module path `historian.libsql_store` is unchanged, and so is
-  `historian.libsql_store.profile`. The profile object there is renamed from `LIBSQL` to
-  `SQLITE`: any import of the old name fails, rather than silently getting v4.
+- **Python API rename:** the package `historian.libsql_store` is now
+  `historian.sqlite_store`, with the same submodules. The profile object is now
+  `SQLITE` instead of `LIBSQL`. There is no compatibility alias: old imports fail
+  rather than silently getting v4. The CLI and socket operations are unchanged.
+- Test, script and evidence names follow the rename:
+  - `tests/test_sqlite_*.py` and `scripts/ci-sqlite-profile.sh`;
+  - `deployment/sqlite/`;
+  - the `historian-sqlite-*.json` evidence files;
+  - the pytest marker `deployment` and the `HISTORIAN_RUN_DEPLOYMENT` switch.
+  `scripts/prepare-release.py` reads the new evidence file names.
 - CI runners are pinned to `ubuntu-24.04`. A new job migrates a genuine libSQL 0.1.11
   database and carries it back.
 

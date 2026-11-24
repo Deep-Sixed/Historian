@@ -31,7 +31,7 @@ def main(argv=None):
                          help="Link the verified copy into --destination (never overwrites)")
     args = parser.parse_args(argv)
     if args.command == "profile":
-        from historian.libsql_store.profile import (
+        from historian.sqlite_store.profile import (
             SQLITE, running_runtime, runtime_is_certified)
         runtime = running_runtime()
         print(json.dumps({"backend": SQLITE.backend_family, "profile": SQLITE.name,
@@ -46,13 +46,13 @@ def main(argv=None):
         if os.getuid() != 10000:
             parser.error("storage operations require service UID 10000")
         if args.command == "migrate":
-            from historian.libsql_store.migrate import migrate as run_migration
+            from historian.sqlite_store.migrate import migrate as run_migration
             print(json.dumps(run_migration(args.source, args.destination, apply=args.apply),
                              sort_keys=True))
             return 0
-        from historian.libsql_store.operations import check, snapshot, storage_lock
+        from historian.sqlite_store.operations import check, snapshot, storage_lock
         if args.command == "upgrade":
-            from historian.libsql_store.repository import upgrade_schema
+            from historian.sqlite_store.repository import upgrade_schema
             with storage_lock(args.database):
                 upgrade_schema(args.database)
         elif args.command == "check":
@@ -63,10 +63,10 @@ def main(argv=None):
         print(json.dumps({"ok": True, "operation": args.command}))
         return 0
     if args.command == "serve":
-        from historian.libsql_store.service import serve as run_service
+        from historian.sqlite_store.service import serve as run_service
         run_service(args.database, args.socket, args.corpus)
         return 0
-    from historian.libsql_store.client import request as call
+    from historian.sqlite_store.client import request as call
     data = json.loads(args.data_file.read_text())
     if not isinstance(data, dict):
         parser.error("request data must be a JSON object")

@@ -10,9 +10,8 @@ hand ordinary callers a database file or service-owner capability.
 - [Application store API](docs/application-persistence.md)
 - [Persistence v1 contract](docs/persistence-v1.md)
 
-Run core tests with `python -m pytest -q -m 'not libsql'` and the
-real Linux enforcement suite with `scripts/ci-libsql-profile.sh` (the script name is
-historical; it proves profile v4). `scripts/ci-migration-compat.sh` migrates a genuine
+Run core tests with `python -m pytest -q -m 'not deployment'` and the
+real Linux enforcement suite with `scripts/ci-sqlite-profile.sh` (profile v4). `scripts/ci-migration-compat.sh` migrates a genuine
 libSQL v3 database and carries it back. Installed-wheel
 validation uses `scripts/ci-package.sh`. Synthetic queue checks run in core CI.
 Run `python scripts/public_release_guard.py` before publishing source or fixtures.

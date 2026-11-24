@@ -1,11 +1,11 @@
 # Application persistence
 
-SQLite (stdlib `sqlite3`, profile v4) is Historian's only database. The module path
-`historian.libsql_store` keeps its historical name. `historian.libsql_store.stores.Store` implements
+SQLite (stdlib `sqlite3`, profile v4) is Historian's only database.
+`historian.sqlite_store.stores.Store` implements
 ProposalStore, AssertionStore, ResolutionStore, SeedStore, PacketStore,
 AdjudicationStore and GoldStore. It is a socket client, not a database connection.
 Constructing one grants no authority. The service checks the real kernel UID against
-`historian/libsql_store/access.py` on every put/get; that exact matrix participates in
+`historian/sqlite_store/access.py` on every put/get; that exact matrix participates in
 the version 4 profile digest.
 
 `Store.put(value)` / `Store.get(type_name, id)` persist complete immutable domain objects.

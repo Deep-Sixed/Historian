@@ -2,7 +2,9 @@
 
 Used by the core migration tests and by scripts/ci-migration-compat.sh, which runs this
 same file against the last profile v3 commit with libSQL 0.1.11 to produce a genuine v3
-database. It only uses names that exist unchanged in v3 and v4. Roles and principals
+database. The storage package is historian.libsql_store in v3 and historian.sqlite_store from v4;
+store() resolves whichever the running checkout has. Otherwise it only uses names that
+exist unchanged in v3 and v4. Roles and principals
 are passed explicitly here: this is a fixture writer, not a capability-boundary test.
 
 Usage: python tests/migration_fixture.py create|append DATABASE CORPUS
@@ -10,6 +12,7 @@ Usage: python tests/migration_fixture.py create|append DATABASE CORPUS
 """
 
 import hashlib
+import importlib
 import json
 import sys
 from uuid import uuid4
@@ -22,6 +25,16 @@ SOURCE = "2026-01-01-source"
 TEXT = b"authority passage\nsecond line\n"
 
 
+def store(module):
+    """Import a storage submodule from v4 (sqlite_store) or v3 (libsql_store)."""
+    try:
+        return importlib.import_module(f"historian.sqlite_store.{module}")
+    except ModuleNotFoundError as exc:
+        if exc.name not in ("historian.sqlite_store", f"historian.sqlite_store.{module}"):
+            raise
+        return importlib.import_module(f"historian.libsql_store.{module}")
+
+
 def write_corpus(corpus):
     corpus = Path(corpus)
     corpus.mkdir(parents=True, exist_ok=True)
@@ -30,14 +43,14 @@ def write_corpus(corpus):
 
 
 def _call(repository, operation, role, corpus, **data):
-    from historian.libsql_store.service import dispatch
+    dispatch = store("service").dispatch
     return dispatch(repository, operation, data, role, f"uid:{ROLE_UIDS[role]}", str(corpus))
 
 
 def populate(database, corpus, prefix="m", cases=3):
     from historian import types as t
-    from historian.libsql_store.codec import encode
-    from historian.libsql_store.repository import Repository, initialize
+    encode = store("codec").encode
+    Repository, initialize = store("repository").Repository, store("repository").initialize
 
     version = write_corpus(corpus)
     initialize(database)
@@ -80,7 +93,7 @@ def populate(database, corpus, prefix="m", cases=3):
 
 
 def summary(database):
-    from historian.libsql_store.repository import connect
+    connect = store("repository").connect
     c = connect(database)
     try:
         tables = [r[0] for r in c.execute(

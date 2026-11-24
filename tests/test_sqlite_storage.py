@@ -3,7 +3,7 @@ import sqlite3
 
 import pytest
 
-from historian.libsql_store.repository import connect, initialize
+from historian.sqlite_store.repository import connect, initialize
 
 
 @pytest.mark.parametrize('identity', [None, ''])
@@ -20,7 +20,7 @@ def test_durable_identity_cannot_be_null_or_empty(tmp_path, identity):
 
 
 def test_backup_restore_preserves_data_and_constraints(tmp_path):
-    from historian.libsql_store.operations import snapshot, check
+    from historian.sqlite_store.operations import snapshot, check
     tmp_path.chmod(0o700)
     source, backup, restored = [tmp_path / name for name in ('source.db', 'backup.db', 'restored.db')]
     initialize(source)
@@ -53,7 +53,7 @@ def test_unknown_schema_is_never_silently_upgraded(tmp_path):
 
 
 def test_backup_refuses_live_service_lock(tmp_path):
-    from historian.libsql_store.operations import snapshot, storage_lock
+    from historian.sqlite_store.operations import snapshot, storage_lock
     tmp_path.chmod(0o700)
     source = tmp_path / 'source.db'
     initialize(source)
@@ -64,7 +64,7 @@ def test_backup_refuses_live_service_lock(tmp_path):
 
 
 def test_upgrade_alpha_schema_is_additive_and_preserves_immutability(tmp_path):
-    from historian.libsql_store.repository import _create_schema, upgrade_schema, validate_schema
+    from historian.sqlite_store.repository import _create_schema, upgrade_schema, validate_schema
     path = tmp_path / 'previous.db'
     c = connect(path)
     _create_schema(c, application=False)

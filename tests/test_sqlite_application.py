@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from test_libsql_profile import deployment  # noqa: F401
+from test_sqlite_profile import deployment  # noqa: F401
 from historian import types as t
 from historian.adjudicator import Adjudicator, AuthorityPolicy
 from historian.gold import (
@@ -16,11 +16,11 @@ from historian.gold import (
     EvaluationGold,
 )
 from historian.capability import packet_hash
-from historian.libsql_store.codec import encode, decode
+from historian.sqlite_store.codec import encode, decode
 from historian.sources import RagV1SourceReader
 from historian.source_adapter import sha256_text
 
-pytestmark = pytest.mark.libsql
+pytestmark = pytest.mark.deployment
 
 
 def put(probe, role, obj):
@@ -259,9 +259,9 @@ def test_verifier_mismatch_leaves_no_evidence(inputs):
 
 def test_every_domain_capability_rejects_unauthorized_uids(deployment):  # noqa: F811
     from pathlib import Path
-    from libsql_probe import ROLES
-    from historian.libsql_store.access import READ, WRITE
-    from historian.libsql_store.profile import SQLITE, running_runtime
+    from sqlite_probe import ROLES
+    from historian.sqlite_store.access import READ, WRITE
+    from historian.sqlite_store.profile import SQLITE, running_runtime
 
     probe, _, _ = deployment
     observations = []
@@ -291,7 +291,7 @@ def test_every_domain_capability_rejects_unauthorized_uids(deployment):  # noqa:
                     }
                 )
                 assert not result["ok"] and result["error"] == "forbidden"
-    Path("/tmp/historian-libsql-application.json").write_text(
+    Path("/tmp/historian-sqlite-application.json").write_text(
         json.dumps(
             {
                 "profile_name": SQLITE.name,

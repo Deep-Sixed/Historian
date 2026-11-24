@@ -15,9 +15,9 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
-from historian.libsql_store.operations import private_parent, storage_lock
-from historian.libsql_store.profile import PREVIOUS_PROFILE, SQLITE, running_runtime
-from historian.libsql_store.repository import connect, validate_schema
+from historian.sqlite_store.operations import private_parent, storage_lock
+from historian.sqlite_store.profile import PREVIOUS_PROFILE, SQLITE, running_runtime
+from historian.sqlite_store.repository import connect, validate_schema
 
 SQLITE_HEADER = b"SQLite format 3\x00"
 # libSQL embedded-replica metadata; such files are synchronized, not local-only.

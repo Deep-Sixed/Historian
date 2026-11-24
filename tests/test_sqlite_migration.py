@@ -12,11 +12,11 @@ import stat
 
 import pytest
 
-from historian.libsql_store import migrate as m
-from historian.libsql_store.operations import check, storage_lock
-from historian.libsql_store.profile import PREVIOUS_PROFILE, SQLITE
-from historian.libsql_store.repository import connect, initialize
-from historian.libsql_store.service import require_supported_runtime, wire_error
+from historian.sqlite_store import migrate as m
+from historian.sqlite_store.operations import check, storage_lock
+from historian.sqlite_store.profile import PREVIOUS_PROFILE, SQLITE
+from historian.sqlite_store.repository import connect, initialize
+from historian.sqlite_store.service import require_supported_runtime, wire_error
 from migration_fixture import populate
 
 
