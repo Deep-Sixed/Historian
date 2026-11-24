@@ -9,12 +9,12 @@ import json
 import platform
 import sqlite3
 
-from historian.libsql_store.access import WRITE, READ
+from historian.sqlite_store.access import WRITE, READ
 from historian.persistence.catalog import CATALOG
 from historian.persistence.contract import Boundary, PersistenceProfile, ThreatModel
 
 CERTIFIED_RUNTIME = {"python": "3.14.5", "sqlite": "3.46.1"}
-# Exact proof image (multi-arch index digest). deployment/libsql/Dockerfile must match.
+# Exact proof image (multi-arch index digest). deployment/sqlite/Dockerfile must match.
 CERTIFIED_IMAGE = (
     "python:3.14.5-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97"
 )

@@ -21,6 +21,6 @@ packages = ["historian"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "libsql: Linux peer-credential SQLite (profile v4) deployment tests; requires disposable container",
+    "deployment: Linux peer-credential SQLite (profile v4) deployment tests; requires disposable container",
     "structural_gate: G-S1..G-S9 structural invariant enforcement",
 ]

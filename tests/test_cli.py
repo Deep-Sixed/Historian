@@ -1,7 +1,7 @@
 import json
 
 from historian.cli import main
-from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE
+from historian.sqlite_store.profile import CERTIFIED_RUNTIME, SQLITE
 
 
 def test_default_profile_is_exact_and_does_not_claim_deployment_conformance(capsys):
@@ -25,7 +25,7 @@ def test_migrate_requires_service_uid(tmp_path, monkeypatch):
 
 
 def test_request_preserves_service_denial(tmp_path, monkeypatch, capsys):
-    from historian.libsql_store import client
+    from historian.sqlite_store import client
     path = tmp_path / "request.json"
     path.write_text('{"id":"q"}')
     calls = []

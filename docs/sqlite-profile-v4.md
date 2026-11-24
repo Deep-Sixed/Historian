@@ -33,13 +33,13 @@ container control, a shared credential or raw file access.
 
 The runtime is part of the profile and is written as constants, not read from the running
 interpreter, so the digest is the same on every machine (`CERTIFIED_RUNTIME` in
-`historian/libsql_store/profile.py`). The checks are:
+`historian/sqlite_store/profile.py`). The checks are:
 - The proof suite fails when the running Python or SQLite differs from the certified
   runtime.
 - Every evidence report records the runtime it ran on.
 - `scripts/prepare-release.py` rejects evidence from any other runtime.
 - `historian profile` prints the running runtime and `runtime_is_certified`.
-- The proof image is pinned by digest, both in `deployment/libsql/Dockerfile` and in the
+- The proof image is pinned by digest, both in `deployment/sqlite/Dockerfile` and in the
   profile (`CERTIFIED_IMAGE`). A core test fails if the two differ.
 - The service refuses to start on SQLite older than 3.38.0, the first release with
   built-in JSON functions, which the schema needs.
@@ -60,9 +60,8 @@ unchanged. Unrelated errors leave the probe unproven.
 
 Conformance is not a production-host certificate and not power-loss certification.
 Trusted components and excluded threats are declared in
-`historian/libsql_store/profile.py`; its complete canonical content determines the
-digest. The module path keeps its historical name (see
-[the design note](sqlite-migration-design.md)). Further reading:
+`historian/sqlite_store/profile.py`; its complete canonical content determines the
+digest. Background: [the design note](sqlite-migration-design.md). Further reading:
 - [migration.md](migration.md): migrating from v3;
 - [release-operations.md](release-operations.md): operations.
 

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from historian.libsql_store.profile import CERTIFIED_RUNTIME, SQLITE
+from historian.sqlite_store.profile import CERTIFIED_RUNTIME, SQLITE
 from historian.persistence.catalog import CATALOG
 
 
@@ -37,16 +37,16 @@ def main():
     parser.add_argument('--workflow-run', required=True)
     args = parser.parse_args()
     root = args.directory
-    validate(json.loads((root/'historian-libsql-conformance.json').read_text()), SQLITE, set())
-    boundary = json.loads((root/'historian-libsql-boundaries.json').read_text())
+    validate(json.loads((root/'historian-sqlite-conformance.json').read_text()), SQLITE, set())
+    boundary = json.loads((root/'historian-sqlite-boundaries.json').read_text())
     assert boundary['profile_name'] == SQLITE.name and boundary['profile_version'] == SQLITE.version
     assert boundary['profile_digest'] == SQLITE.digest
     assert boundary.get('runtime') == CERTIFIED_RUNTIME
     assert len(boundary['evidence']) == 124
     assert all(row['expected'] == row['observed'] for row in boundary['evidence'])
-    from historian.libsql_store.access import READ, WRITE
+    from historian.sqlite_store.access import READ, WRITE
     roles = {"extractor","verifier","designer","typed","reviewer","runtime","builder","adjudicator","gold"}
-    app = json.loads((root/'historian-libsql-application.json').read_text())
+    app = json.loads((root/'historian-sqlite-application.json').read_text())
     assert (app['profile_name'],app['profile_version'],app['profile_digest']) == (SQLITE.name,SQLITE.version,SQLITE.digest)
     assert app.get('runtime') == CERTIFIED_RUNTIME
     expected = {(op,kind,role) for op,mapping in [('get_object',READ),('put_object',WRITE),('get_packet_snapshot',{'AdjudicationPacket':READ['AdjudicationPacket']})]

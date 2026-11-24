@@ -42,7 +42,7 @@ and 43 probes were not relaxed by either backend change.
 | PV19 | Verified evidence preserves the candidate locator and anchor it cites. | database | referential_integrity |
 | PV20 | Human adjudication attribution comes from the authenticated principal. | database, trusted_service | authenticated_identity |
 
-Run scripts/ci-libsql-profile.sh for the real Linux proof deployment of profile v4. Its
+Run scripts/ci-sqlite-profile.sh for the real Linux proof deployment of profile v4. Its
 reports record the runtime; only the certified runtime's evidence can be released. CI retains the
 43-probe report, 124 original supplemental boundary checks, and the application API
 capability matrix. Reports identify exact profile definitions independently of the test

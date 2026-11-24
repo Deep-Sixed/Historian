@@ -102,6 +102,10 @@ The two drivers differ in three ways:
   case-queue tool, the evidence artifact names and the test file names do not change.
   The name is now historical: its docstring says so, and the docs call the backend
   SQLite. A mechanical rename is a separate follow-up PR, once this one has merged.
+  *Follow-up done:* the package is now `historian.sqlite_store`. The tests, scripts,
+  evidence files, the pytest marker (now `deployment`) and `HISTORIAN_RUN_DEPLOYMENT`
+  were renamed with it, with no compatibility alias. The profile digest is unchanged,
+  because no profile field names a module path.
 
 ### 2. Profile v4 supersedes v3; v3 itself does not change
 
@@ -233,9 +237,8 @@ section), `GATE-MAPPING.md`, and the three frozen-doc banners.
   profile, so the digest covers it, and a core test keeps the Dockerfile equal to it.
   Security updates to the base image now need a deliberate digest bump and a new
   profile version. The runtime assertion remains as a second guard.
-- **The package name is still libSQL.** Until the follow-up rename,
-  `historian.libsql_store` holds the SQLite backend. This is deliberate, to keep
-  this diff reviewable and the API stable.
+- **The package name was still libSQL.** Resolved in the follow-up rename to
+  `historian.sqlite_store`.
 - **Version skew.** libSQL 0.1.11 embeds SQLite 3.45.1; the certified runtime is
   3.46.1. The schema uses no feature newer than 3.38, and the compatibility job
   covers both directions.

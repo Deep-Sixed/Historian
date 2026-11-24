@@ -12,10 +12,10 @@ from historian.gold import (
 )
 from historian.resolution import ResolutionReview
 from historian.capability import packet_hash
-from historian.libsql_store.codec import encode, decode
-from historian.libsql_store.repository import canonical, transaction
+from historian.sqlite_store.codec import encode, decode
+from historian.sqlite_store.repository import canonical, transaction
 
-from historian.libsql_store.access import WRITE, READ
+from historian.sqlite_store.access import WRITE, READ
 
 LINKS = {
     "taxonomy_version": "FrameTaxonomy",

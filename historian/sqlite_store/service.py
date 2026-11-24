@@ -14,8 +14,8 @@ import struct
 import stat
 from pathlib import Path
 
-from historian.libsql_store.repository import Repository, canonical, initialize, transaction
-from historian.libsql_store.operations import storage_lock
+from historian.sqlite_store.repository import Repository, canonical, initialize, transaction
+from historian.sqlite_store.operations import storage_lock
 from historian.persistence.locator import locator_from_record, locator_to_record
 from historian.source_adapter import (
     CoordinatePart,
@@ -62,7 +62,7 @@ MAX_REQUEST = 1024 * 1024
 
 def dispatch(repository, operation, data, role, principal, corpus):
     if operation in {"put_object", "get_object", "get_packet_snapshot"}:
-        from historian.libsql_store.domain import dispatch as domain_dispatch
+        from historian.sqlite_store.domain import dispatch as domain_dispatch
         return domain_dispatch(repository,operation,data,role,principal,corpus)
     if role not in ALLOWED.get(operation, set()):
         raise PermissionError("capability denied")

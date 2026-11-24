@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import sqlite3
 
-from historian.libsql_store.repository import canonical
+from historian.sqlite_store.repository import canonical
 from historian.persistence.contract import Access, Boundary, Observation
 
 ROLES = {
@@ -41,7 +41,7 @@ def locator(
     }
 
 
-class LibSQLProbe:
+class SQLiteProbe:
     def __init__(self, database, socket_path, corpus):
         self.database, self.socket, self.corpus = (
             str(database),
@@ -52,7 +52,7 @@ class LibSQLProbe:
 
     def worker(self, uid, payload):
         result = subprocess.run(
-            [sys.executable, str(Path(__file__).with_name("libsql_process.py"))],
+            [sys.executable, str(Path(__file__).with_name("sqlite_process.py"))],
             input=json.dumps(payload),
             text=True,
             capture_output=True,
@@ -522,7 +522,7 @@ class LibSQLProbe:
     def transaction_probe(self, scenario):
         # Trusted storage connection owns the transaction; a separate actor process observes it.
         # This test runs as provisioning root, never exposes a connection to an ordinary caller.
-        from historian.libsql_store.repository import connect
+        from historian.sqlite_store.repository import connect
 
         c = connect(self.database)
         try:

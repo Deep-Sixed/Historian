@@ -35,8 +35,9 @@ assert "libsql" in r.connect.__code__.co_names, "v3 code must use the libSQL dri
 print("v3 writer: libsql", getattr(libsql, "__version__", "0.1.11"))
 PY
 v4 - <<'PY'
-import importlib.util, historian.libsql_store.repository as r
+import importlib.util, historian.sqlite_store.repository as r
 assert importlib.util.find_spec("libsql") is None
+assert importlib.util.find_spec("historian.libsql_store") is None, "v4 must not ship the old package"
 assert "sqlite3" in r.connect.__code__.co_names
 PY
 
@@ -46,9 +47,9 @@ sha256sum "$work/old/historian.db" > "$work/source.sha256"
 WORK="$work" v4 - <<'PY'
 import json, os
 from pathlib import Path
-from historian.libsql_store.migrate import migrate
-from historian.libsql_store.operations import check
-from historian.libsql_store.profile import PREVIOUS_PROFILE, SQLITE
+from historian.sqlite_store.migrate import migrate
+from historian.sqlite_store.operations import check
+from historian.sqlite_store.profile import PREVIOUS_PROFILE, SQLITE
 work = Path(os.environ["WORK"])
 old, new, back = work/"old/historian.db", work/"new/historian.db", work/"back/historian.db"
 dry = migrate(old, new)
@@ -75,7 +76,7 @@ v4 "$fixture" append "$work/new/historian.db" "$work/corpus" > /dev/null
 WORK="$work" v4 - <<'PY'
 import os
 from pathlib import Path
-from historian.libsql_store.migrate import migrate
+from historian.sqlite_store.migrate import migrate
 work = Path(os.environ["WORK"])
 migrate(work/"new/historian.db", work/"back/historian.db", apply=True)
 PY
